@@ -42,6 +42,8 @@ class SeoBlogController extends Controller
             ? Article::where('user_id', $currentUser->id)->latest()->take(5)->get()
             : Article::latest()->take(5)->get();
 
+        $latestArticle = $recentArticles->first();
+
         return view('pages.blog-creator', compact(
             'clients',
             'activeClient',
@@ -49,7 +51,8 @@ class SeoBlogController extends Controller
             'promptTemplates',
             'articleOptions',
             'recentJobs',
-            'recentArticles'
+            'recentArticles',
+            'latestArticle'
         ));
     }
 
@@ -109,10 +112,14 @@ class SeoBlogController extends Controller
             ], 500);
         }
 
+        $article = $job->articles()->first();
+
         return response()->json([
             'message' => 'SEO Blog generation job completed.',
             'job_id' => $job->id,
             'status' => $job->status,
+            'article' => $article,
+            'article_id' => $article?->id,
         ], 202);
     }
 
@@ -397,7 +404,12 @@ class SeoBlogController extends Controller
 
     public function getJobLogs(Request $request, $id)
     {
-        $job = $request->user()->seoJobs()->findOrFail($id);
+        $user = $request->user();
+        $job = $user ? $user->seoJobs()->find($id) : null;
+        if (! $job) {
+            $job = \App\Models\SeoGenerationJob::findOrFail($id);
+        }
+
         $logs = ! empty($job->logs) ? json_decode($job->logs, true) : [];
         $article = $job->articles()->first();
 
@@ -417,6 +429,31 @@ class SeoBlogController extends Controller
             'status' => $job->status,
             'logs' => $logs,
             'metrics' => $metrics,
+            'article' => $article,
+            'article_id' => $article?->id,
+        ]);
+    }
+
+    public function getJobArticle(Request $request, $id)
+    {
+        $user = $request->user();
+        $job = $user ? $user->seoJobs()->find($id) : null;
+        if (! $job) {
+            $job = \App\Models\SeoGenerationJob::findOrFail($id);
+        }
+
+        $article = $job->articles()->first();
+
+        if (! $article) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Article not yet generated or not found for this job.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'article' => $article,
         ]);
     }
 

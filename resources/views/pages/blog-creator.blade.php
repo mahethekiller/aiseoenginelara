@@ -621,6 +621,9 @@
             success: function(res) {
                 const jobId = res.job_id;
                 logConsole('Job #' + jobId + ' dispatched successfully. Polling live telemetry...');
+                if (res.status === 'completed' && res.article) {
+                    renderCompletedArticle(res.article);
+                }
                 startTelemetryPolling(jobId);
             },
             error: function(xhr) {
@@ -662,7 +665,11 @@
                         $('#btn-generate-article').removeAttr('disabled').removeClass('opacity-75');
                         $('#generate-btn-text').text('Generate Article');
                         showToast('Article generated successfully!', 'success');
-                        loadCompletedArticle(jobId);
+                        if (res.article) {
+                            renderCompletedArticle(res.article);
+                        } else {
+                            loadCompletedArticle(jobId);
+                        }
                     } else if (res.status === 'failed') {
                         clearInterval(pollInterval);
                         $('#btn-generate-article').removeAttr('disabled').removeClass('opacity-75');
@@ -679,37 +686,71 @@
         const time = new Date().toLocaleTimeString();
         $('#console-logs').append('<div class="' + extraClass + '">[' + time + '] ' + msg + '</div>');
         const box = document.getElementById('console-logs');
-        box.scrollTop = box.scrollHeight;
+        if (box) box.scrollTop = box.scrollHeight;
+    }
+
+    function renderCompletedArticle(target) {
+        if (!target) return;
+        currentArticleId = target.id;
+
+        // 1. Article Title & KPI Metrics
+        $('#workbench-article-title').text(target.title || 'Untitled Article');
+        if (target.word_count) {
+            $('#wb-word-count').text(target.word_count + ' words');
+        }
+        if (target.seo_score) {
+            $('#wb-seo-score').text('SEO: ' + target.seo_score);
+        }
+        if (target.flesch_reading_ease) {
+            $('#wb-flesch-score').text('Reading Ease: ' + target.flesch_reading_ease);
+        }
+        if (target.prompt_tokens || target.completion_tokens) {
+            const promptTok = target.prompt_tokens || 0;
+            const compTok = target.completion_tokens || 0;
+            const costUsd = (promptTok * 0.00000015) + (compTok * 0.0000006);
+            $('#wb-cost-usd').text('$' + costUsd.toFixed(4));
+            $('#wb-cost-inr').text('₹' + (costUsd * 84.0).toFixed(2));
+        }
+
+        // 2. Rendered Content & Raw HTML
+        const html = target.html_content || target.markdown_content || '';
+        $('#article-rendered-content').html(html);
+        $('#article-raw-html').text(html);
+
+        // 3. Metadata & SEO Schema
+        $('#meta-title-display').text(target.meta_title || target.title || 'N/A');
+        $('#meta-desc-display').text(target.meta_description || 'N/A');
+        $('#meta-slug-display').text(target.slug || 'N/A');
+
+        let schemaObj = target.schema_jsonld || target.schema_json;
+        if (typeof schemaObj === 'string') {
+            try { schemaObj = JSON.parse(schemaObj); } catch(e) {}
+        }
+        $('#article-schema-json').text(schemaObj ? JSON.stringify(schemaObj, null, 2) : '{}');
+
+        // 4. Unlock Action Buttons
+        $('#btn-download-html').removeAttr('disabled');
+        $('#btn-download-docx').removeAttr('disabled');
+        $('#btn-publish-wp').removeAttr('disabled');
+
+        if (window.refreshIcons) {
+            window.refreshIcons();
+        } else if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
 
     function loadCompletedArticle(jobId) {
         $.ajax({
-            url: "/api/seo-generation/jobs/" + jobId,
+            url: "/blog-creator/jobs/" + jobId + "/article",
             type: 'GET',
-            success: function(job) {
-                // Fetch the article tied to this job
-                $.ajax({
-                    url: "/api/articles",
-                    type: 'GET',
-                    success: function(articles) {
-                        const target = (articles.data || articles).find(a => a.seo_generation_job_id === job.id) || (articles.data || articles)[0];
-                        if (target) {
-                            currentArticleId = target.id;
-                            $('#workbench-article-title').text(target.title);
-                            $('#article-rendered-content').html(target.html_content);
-                            $('#article-raw-html').text(target.html_content);
-                            $('#meta-title-display').text(target.meta_title || target.title);
-                            $('#meta-desc-display').text(target.meta_description || 'N/A');
-                            $('#meta-slug-display').text(target.slug);
-                            $('#article-schema-json').text(JSON.stringify(target.schema_jsonld || target.schema_json || {}, null, 2));
-
-                            $('#btn-download-html').removeAttr('disabled');
-                            $('#btn-download-docx').removeAttr('disabled');
-                            $('#btn-publish-wp').removeAttr('disabled');
-                            window.refreshIcons();
-                        }
-                    }
-                });
+            success: function(res) {
+                if (res && res.article) {
+                    renderCompletedArticle(res.article);
+                }
+            },
+            error: function(xhr) {
+                console.error('Failed to load article for job #' + jobId, xhr);
             }
         });
     }
@@ -739,5 +780,13 @@
             }
         });
     }
+
+    // Auto-render latest article on initial page load if one exists
+    $(document).ready(function() {
+        @if(isset($latestArticle) && $latestArticle)
+            const initialArticle = @json($latestArticle);
+            renderCompletedArticle(initialArticle);
+        @endif
+    });
 </script>
 @endpush

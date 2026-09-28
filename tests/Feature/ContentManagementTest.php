@@ -156,4 +156,44 @@ class ContentManagementTest extends TestCase
         $this->assertNotEmpty($response->json('user_prompt'));
         $this->assertStringContainsString('minimalist interior design', $response->json('user_prompt'));
     }
+
+    public function test_user_can_fetch_job_logs_and_article_payload()
+    {
+        $job = $this->user1->seoJobs()->create([
+            'execution_mode' => 'single',
+            'status' => 'completed',
+            'parameters' => ['topic' => 'Test Article', 'primary_keyword' => 'test'],
+            'total_items' => 1,
+            'completed_items' => 1,
+            'logs' => json_encode(['[00:00:00] Job started', '[00:00:05] Job completed']),
+        ]);
+
+        $article = $job->articles()->create([
+            'user_id' => $this->user1->id,
+            'title' => 'Test Generated Article',
+            'meta_title' => 'Test Generated Article Meta',
+            'meta_description' => 'Test Generated Article Meta Description',
+            'slug' => 'test-generated-article',
+            'html_content' => '<p>Generated content body</p>',
+            'markdown_content' => '# Generated content body',
+            'word_count' => 500,
+            'seo_score' => 92,
+            'flesch_reading_ease' => 65.5,
+        ]);
+
+        // 1. Fetch logs
+        $logsResponse = $this->actingAs($this->user1)->getJson("/blog-creator/jobs/{$job->id}/logs");
+        $logsResponse->assertStatus(200)
+            ->assertJsonPath('status', 'completed')
+            ->assertJsonPath('article.title', 'Test Generated Article')
+            ->assertJsonPath('article_id', $article->id)
+            ->assertJsonPath('metrics.words_generated', 500);
+
+        // 2. Fetch job article directly
+        $articleResponse = $this->actingAs($this->user1)->getJson("/blog-creator/jobs/{$job->id}/article");
+        $articleResponse->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('article.title', 'Test Generated Article')
+            ->assertJsonPath('article.html_content', '<p>Generated content body</p>');
+    }
 }

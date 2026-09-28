@@ -36,6 +36,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/blog-creator/generate', [SeoBlogController::class, 'generate'])->name('blog.generate');
     Route::post('/blog-creator/preview-prompt', [SeoBlogController::class, 'previewPrompt'])->name('blog.preview.prompt');
     Route::get('/blog-creator/jobs/{id}/logs', [SeoBlogController::class, 'getJobLogs'])->name('blog.job.logs');
+    Route::get('/blog-creator/jobs/{id}/article', [SeoBlogController::class, 'getJobArticle'])->name('blog.job.article');
     Route::post('/blog-creator/articles/{id}/publish-wp', [SeoBlogController::class, 'publishToWordPress'])->name('blog.publish.wp');
 
     // 2. Agency Clients Management
