@@ -44,6 +44,38 @@ class RoleGateTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_settings_displays_only_user_scoped_presets(): void
+    {
+        $admin1 = User::factory()->create();
+        $admin1->assignRole('admin');
+        $preset1 = AiPreset::create([
+            'user_id' => $admin1->id,
+            'name' => 'Unique Admin1 Exclusive Preset',
+            'provider' => 'gemini',
+            'model' => 'gemini-2.0-flash',
+            'max_workers' => 3,
+            'temperature' => 0.7,
+            'is_active' => true,
+        ]);
+
+        $admin2 = User::factory()->create();
+        $admin2->assignRole('admin');
+        $preset2 = AiPreset::create([
+            'user_id' => $admin2->id,
+            'name' => 'Unique Admin2 Secret Preset',
+            'provider' => 'openai',
+            'model' => 'gpt-4o',
+            'max_workers' => 4,
+            'temperature' => 0.8,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($admin1)->get('/settings');
+        $response->assertStatus(200);
+        $response->assertSee('Unique Admin1 Exclusive Preset');
+        $response->assertDontSee('Unique Admin2 Secret Preset');
+    }
+
     public function test_viewer_is_forbidden_from_web_settings(): void
     {
         $viewer = User::factory()->create();

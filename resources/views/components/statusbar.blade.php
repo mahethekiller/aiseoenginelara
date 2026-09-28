@@ -1,7 +1,9 @@
 @php
     $currentUser = auth()->user();
     $activeClient = $currentUser ? \App\Models\Client::find($currentUser->active_client_id) : null;
-    $activePreset = \App\Models\AiPreset::where('is_active', true)->first();
+    $activePreset = $currentUser
+        ? ($currentUser->presets()->where('is_active', true)->first() ?? \App\Models\AiPreset::where('is_active', true)->first())
+        : \App\Models\AiPreset::where('is_active', true)->first();
 @endphp
 
 <footer class="bg-base-100 border-t border-base-300 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 z-20">

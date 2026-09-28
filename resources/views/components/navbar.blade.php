@@ -9,10 +9,10 @@
 
     $allPresets = $currentUser && $currentUser->presets()->exists()
         ? $currentUser->presets()->orderBy('name')->get()
-        : \App\Models\AiPreset::orderBy('name')->get();
+        : \App\Models\AiPreset::orderBy('name')->get()->unique('name');
 
     if ($allPresets->isEmpty()) {
-        $allPresets = \App\Models\AiPreset::all();
+        $allPresets = \App\Models\AiPreset::all()->unique('name');
     }
 @endphp
 

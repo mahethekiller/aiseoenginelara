@@ -16,7 +16,22 @@ class SettingsController extends Controller
         $configResponse = $this->getConfig($request);
         $config = $configResponse->getData(true);
 
-        $presets = AiPreset::orderBy('created_at', 'desc')->get();
+        $currentUser = $request->user();
+        if ($currentUser && $currentUser->presets()->exists()) {
+            $presets = $currentUser->presets()->orderBy('created_at', 'desc')->get();
+        } else {
+            $presets = AiPreset::where(function ($q) use ($currentUser) {
+                if ($currentUser) {
+                    $q->where('user_id', $currentUser->id);
+                } else {
+                    $q->whereNull('user_id');
+                }
+            })->orderBy('created_at', 'desc')->get();
+
+            if ($presets->isEmpty()) {
+                $presets = AiPreset::all()->unique('name');
+            }
+        }
 
         $syncedModels = SyncedModel::all()->pluck('models', 'provider')->toArray();
 
@@ -48,7 +63,11 @@ class SettingsController extends Controller
 
         $user = $request->user();
         if ($request->boolean('is_active')) {
-            AiPreset::query()->update(['is_active' => false]);
+            if ($user) {
+                AiPreset::where('user_id', $user->id)->update(['is_active' => false]);
+            } else {
+                AiPreset::query()->update(['is_active' => false]);
+            }
         }
 
         $presetId = $request->input('id');
@@ -56,7 +75,7 @@ class SettingsController extends Controller
             $preset = AiPreset::findOrFail($presetId);
             $preset->update($validated);
         } else {
-            $preset = AiPreset::create(array_merge($validated, ['user_id' => $user->id]));
+            $preset = AiPreset::create(array_merge($validated, ['user_id' => $user?->id]));
         }
 
         if ($request->expectsJson() || $request->ajax()) {
@@ -68,7 +87,13 @@ class SettingsController extends Controller
 
     public function activatePreset(Request $request, $id)
     {
-        AiPreset::query()->update(['is_active' => false]);
+        $user = $request->user();
+        if ($user) {
+            AiPreset::where('user_id', $user->id)->update(['is_active' => false]);
+        } else {
+            AiPreset::query()->update(['is_active' => false]);
+        }
+
         $preset = AiPreset::findOrFail($id);
         $preset->update(['is_active' => true]);
 

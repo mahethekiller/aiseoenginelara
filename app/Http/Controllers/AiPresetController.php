@@ -9,53 +9,66 @@ class AiPresetController extends Controller
 {
     public function index(Request $request)
     {
-        $presets = AiPreset::orderBy('created_at', 'desc')->get();
+        $user = $request->user();
+        $presets = $user && $user->presets()->exists()
+            ? $user->presets()->orderBy('created_at', 'desc')->get()
+            : AiPreset::where(function ($q) use ($user) {
+                if ($user) {
+                    $q->where('user_id', $user->id);
+                } else {
+                    $q->whereNull('user_id');
+                }
+            })->orderBy('created_at', 'desc')->get();
 
         if ($presets->isEmpty()) {
-            $standardPresets = [
-                [
-                    'name' => 'Google E-E-A-T Standard',
-                    'provider' => 'gemini',
-                    'model' => 'gemini-2.0-flash',
-                    'max_workers' => 3,
-                    'temperature' => 0.7,
-                    'custom_instructions' => 'Focus on Google E-E-A-T standards. Provide deep first-hand experience insights, expert breakdown, actionable steps, and clear bullet points.',
-                    'is_active' => true,
-                ],
-                [
-                    'name' => 'Affiliate Buyer Guide',
-                    'provider' => 'gemini',
-                    'model' => 'gemini-2.0-flash',
-                    'max_workers' => 3,
-                    'temperature' => 0.7,
-                    'custom_instructions' => 'Focus on commercial intent. Compare features, highlight pros & cons, present clear buyer recommendations, and end with a strong purchasing verdict CTA.',
-                    'is_active' => false,
-                ],
-                [
-                    'name' => 'B2B Whitepaper / Executive',
-                    'provider' => 'gemini',
-                    'model' => 'gemini-2.0-flash',
-                    'max_workers' => 3,
-                    'temperature' => 0.6,
-                    'custom_instructions' => 'Write in an authoritative, data-backed corporate tone suitable for enterprise executives, software architects, and decision-makers.',
-                    'is_active' => false,
-                ],
-                [
-                    'name' => 'Viral Blog Post / Engaging',
-                    'provider' => 'gemini',
-                    'model' => 'gemini-2.0-flash',
-                    'max_workers' => 3,
-                    'temperature' => 0.8,
-                    'custom_instructions' => 'Write in a highly engaging, conversational tone with storytelling hooks, short snappy paragraphs, and interactive sub-headings.',
-                    'is_active' => false,
-                ],
-            ];
+            if ($user) {
+                $standardPresets = [
+                    [
+                        'name' => 'Google E-E-A-T Standard',
+                        'provider' => 'gemini',
+                        'model' => 'gemini-2.0-flash',
+                        'max_workers' => 3,
+                        'temperature' => 0.7,
+                        'custom_instructions' => 'Focus on Google E-E-A-T standards. Provide deep first-hand experience insights, expert breakdown, actionable steps, and clear bullet points.',
+                        'is_active' => true,
+                    ],
+                    [
+                        'name' => 'Affiliate Buyer Guide',
+                        'provider' => 'gemini',
+                        'model' => 'gemini-2.0-flash',
+                        'max_workers' => 3,
+                        'temperature' => 0.7,
+                        'custom_instructions' => 'Focus on commercial intent. Compare features, highlight pros & cons, present clear buyer recommendations, and end with a strong purchasing verdict CTA.',
+                        'is_active' => false,
+                    ],
+                    [
+                        'name' => 'B2B Whitepaper / Executive',
+                        'provider' => 'gemini',
+                        'model' => 'gemini-2.0-flash',
+                        'max_workers' => 3,
+                        'temperature' => 0.6,
+                        'custom_instructions' => 'Write in an authoritative, data-backed corporate tone suitable for enterprise executives, software architects, and decision-makers.',
+                        'is_active' => false,
+                    ],
+                    [
+                        'name' => 'Viral Blog Post / Engaging',
+                        'provider' => 'gemini',
+                        'model' => 'gemini-2.0-flash',
+                        'max_workers' => 3,
+                        'temperature' => 0.8,
+                        'custom_instructions' => 'Write in a highly engaging, conversational tone with storytelling hooks, short snappy paragraphs, and interactive sub-headings.',
+                        'is_active' => false,
+                    ],
+                ];
 
-            foreach ($standardPresets as $presetData) {
-                AiPreset::create(array_merge($presetData, ['user_id' => $request->user()->id]));
+                foreach ($standardPresets as $presetData) {
+                    AiPreset::create(array_merge($presetData, ['user_id' => $user->id]));
+                }
+
+                $presets = $user->presets()->orderBy('created_at', 'desc')->get();
+            } else {
+                $presets = AiPreset::all()->unique('name')->values();
             }
-
-            $presets = AiPreset::orderBy('created_at', 'desc')->get();
         }
 
         return response()->json($presets);
