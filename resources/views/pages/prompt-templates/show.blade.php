@@ -228,6 +228,45 @@
                 <input type="text" id="tmpl_desc" name="description" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
             </div>
 
+            <!-- Dynamic Placeholders Click-to-Add Toolbar -->
+            <div class="bg-base-200/60 rounded-xl p-3 border border-base-300 space-y-2">
+                <div class="flex items-center justify-between flex-wrap gap-1">
+                    <span class="text-xs font-bold text-base-content/80 flex items-center gap-1.5">
+                        <i data-lucide="variable" class="w-3.5 h-3.5 text-primary"></i> Dynamic Placeholders
+                    </span>
+                    <span class="text-[10px] text-base-content/50">Click any chip to insert at cursor position</span>
+                </div>
+
+                <!-- Chips Container -->
+                <div id="modal_placeholder_chips" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                    @php
+                        $standardPlaceholders = [
+                            'brand_name', 'audience', 'tone', 'content_type_label', 
+                            'primary_keyword', 'wireframe_layout', 'word_count', 
+                            'reading_level', 'seo_title', 'meta_description', 
+                            'slug', 'brand_heading', 'internal_links', 'cta', 'schema_directive'
+                        ];
+                    @endphp
+                    @foreach($standardPlaceholders as $chip)
+                        <button type="button" data-chip="{{ $chip }}" onclick="insertPlaceholderAtCursor('{{ $chip }}')" 
+                                class="badge badge-neutral hover:badge-primary text-[11px] font-mono cursor-pointer transition-all py-2 px-2 hover:scale-105 active:scale-95 shadow-xs" 
+                                title="Click to insert &#123;&#123;{{ $chip }}&#125;&#125;">
+                            + &#123;&#123;{{ $chip }}&#125;&#125;
+                        </button>
+                    @endforeach
+                </div>
+
+                <!-- Quick Custom Token Input -->
+                <div class="flex items-center gap-2 pt-1 border-t border-base-300/60">
+                    <input type="text" id="custom_chip_input" placeholder="Add custom token (e.g. author_bio)" 
+                           onkeydown="if(event.key==='Enter'){ event.preventDefault(); addCustomChip(); }"
+                           class="input input-bordered input-xs bg-base-100 font-mono text-[11px] w-64" />
+                    <button type="button" onclick="addCustomChip()" class="btn btn-xs btn-outline btn-primary gap-1">
+                        <i data-lucide="plus" class="w-3 h-3"></i> Add Token
+                    </button>
+                </div>
+            </div>
+
             <div>
                 <div class="flex items-center justify-between py-1">
                     <label class="label p-0 text-xs font-semibold">System Prompt Template Directives <span class="text-error">*</span></label>
@@ -270,6 +309,53 @@
         });
     }
 
+    function insertPlaceholderAtCursor(tokenName) {
+        const textarea = document.getElementById('tmpl_system_prompt');
+        if (!textarea) return;
+
+        const token = '{' + '{' + tokenName + '}' + '}';
+        const startPos = textarea.selectionStart;
+        const endPos = textarea.selectionEnd;
+        const val = textarea.value;
+
+        if (startPos !== undefined && endPos !== undefined) {
+            textarea.value = val.substring(0, startPos) + token + val.substring(endPos, val.length);
+            const newCursorPos = startPos + token.length;
+            textarea.selectionStart = newCursorPos;
+            textarea.selectionEnd = newCursorPos;
+        } else {
+            textarea.value += ' ' + token;
+        }
+
+        textarea.focus();
+        showToast('Inserted ' + token + ' at cursor', 'info');
+    }
+
+    function addCustomChip() {
+        const input = document.getElementById('custom_chip_input');
+        if (!input) return;
+        const raw = input.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+        if (!raw) {
+            showToast('Please enter a valid token name', 'error');
+            return;
+        }
+
+        const container = document.getElementById('modal_placeholder_chips');
+        if (container && !container.querySelector(`[data-chip="${raw}"]`)) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.setAttribute('data-chip', raw);
+            btn.setAttribute('onclick', `insertPlaceholderAtCursor('${raw}')`);
+            btn.className = 'badge badge-primary text-[11px] font-mono cursor-pointer transition-all py-2 px-2 hover:scale-105 active:scale-95 shadow-xs';
+            btn.title = 'Click to insert {' + '{' + raw + '}' + '}';
+            btn.innerHTML = `+ &#123;&#123;${raw}&#125;&#125;`;
+            container.appendChild(btn);
+        }
+
+        insertPlaceholderAtCursor(raw);
+        input.value = '';
+    }
+
     function editTemplate(tmpl) {
         $('#template-modal-title').text('Edit Blueprint: ' + tmpl.archetype_name);
         $('#tmpl_id').val(tmpl.id);
@@ -277,6 +363,26 @@
         $('#tmpl_desc').val(tmpl.description || '');
         $('#tmpl_client_id').val(tmpl.client_id || '');
         $('#tmpl_system_prompt').val(tmpl.system_prompt_template);
+
+        // Dynamically add custom placeholders from template into the toolbar
+        if (tmpl.available_placeholders && Array.isArray(tmpl.available_placeholders)) {
+            const container = document.getElementById('modal_placeholder_chips');
+            if (container) {
+                tmpl.available_placeholders.forEach(chip => {
+                    if (!container.querySelector(`[data-chip="${chip}"]`)) {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.setAttribute('data-chip', chip);
+                        btn.setAttribute('onclick', `insertPlaceholderAtCursor('${chip}')`);
+                        btn.className = 'badge badge-neutral hover:badge-primary text-[11px] font-mono cursor-pointer transition-all py-2 px-2 hover:scale-105 active:scale-95 shadow-xs';
+                        btn.title = 'Click to insert {' + '{' + chip + '}' + '}';
+                        btn.innerHTML = `+ &#123;&#123;${chip}&#125;&#125;`;
+                        container.appendChild(btn);
+                    }
+                });
+            }
+        }
+
         document.getElementById('template_modal').showModal();
     }
 

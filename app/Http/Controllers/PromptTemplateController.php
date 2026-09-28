@@ -81,6 +81,10 @@ class PromptTemplateController extends Controller
         $slug = Str::slug($validated['archetype_name']);
         $uniqueKey = 'custom_'.$slug.'_'.substr(md5(uniqid()), 0, 6);
 
+        preg_match_all('/\{\{([a-zA-Z0-9_\-]+)\}\}/', $validated['system_prompt_template'], $extractedMatches);
+        $extractedPlaceholders = ! empty($extractedMatches[1]) ? array_values(array_unique($extractedMatches[1])) : [];
+        $mergedPlaceholders = array_values(array_unique(array_merge($defaultPlaceholders, $extractedPlaceholders, $validated['available_placeholders'] ?? [])));
+
         $template = AiPromptTemplate::create([
             'user_id' => $request->user()->id,
             'client_id' => $validated['client_id'] ?? null,
@@ -88,7 +92,7 @@ class PromptTemplateController extends Controller
             'archetype_name' => $validated['archetype_name'],
             'description' => $validated['description'] ?? 'User-defined custom prompt template',
             'system_prompt_template' => $validated['system_prompt_template'],
-            'available_placeholders' => $validated['available_placeholders'] ?? $defaultPlaceholders,
+            'available_placeholders' => $mergedPlaceholders,
             'is_active' => $validated['is_active'] ?? true,
             'is_system' => false,
         ]);
@@ -174,6 +178,13 @@ class PromptTemplateController extends Controller
             'client_id' => 'nullable|exists:clients,id',
             'is_active' => 'nullable|boolean',
         ]);
+
+        if (isset($validated['system_prompt_template'])) {
+            preg_match_all('/\{\{([a-zA-Z0-9_\-]+)\}\}/', $validated['system_prompt_template'], $extractedMatches);
+            $extracted = ! empty($extractedMatches[1]) ? array_values(array_unique($extractedMatches[1])) : [];
+            $existing = is_array($template->available_placeholders) ? $template->available_placeholders : [];
+            $validated['available_placeholders'] = array_values(array_unique(array_merge($existing, $extracted)));
+        }
 
         $template->update($validated);
         $template->load(['user:id,name,email', 'client:id,name']);
