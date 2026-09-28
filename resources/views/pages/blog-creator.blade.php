@@ -329,24 +329,24 @@
         </div>
 
         <!-- Tabs Header -->
-        <div class="tabs tabs-bordered bg-base-200/30 px-6 border-b border-base-300 text-xs">
-            <button type="button" class="tab tab-active prompt-tab" data-target="tab-p-master">
+        <div class="tabs tabs-border bg-base-200/30 px-6 border-b border-base-300 text-xs flex items-center gap-1">
+            <button type="button" onclick="switchPromptTab('tab-p-master', this)" class="tab prompt-tab tab-active font-semibold py-2.5 transition-all cursor-pointer border-b-2 border-primary text-primary" data-target="tab-p-master">
                 <i data-lucide="sparkles" class="w-3.5 h-3.5 mr-1.5"></i> Master Article Prompt
             </button>
-            <button type="button" class="tab prompt-tab" data-target="tab-p-outline">
+            <button type="button" onclick="switchPromptTab('tab-p-outline', this)" class="tab prompt-tab font-semibold py-2.5 transition-all cursor-pointer text-base-content/70 hover:text-base-content" data-target="tab-p-outline">
                 <i data-lucide="layers" class="w-3.5 h-3.5 mr-1.5"></i> Pass 1: Outline Architecture
             </button>
-            <button type="button" class="tab prompt-tab" data-target="tab-p-sections">
+            <button type="button" onclick="switchPromptTab('tab-p-sections', this)" class="tab prompt-tab font-semibold py-2.5 transition-all cursor-pointer text-base-content/70 hover:text-base-content" data-target="tab-p-sections">
                 <i data-lucide="code" class="w-3.5 h-3.5 mr-1.5"></i> Pass 2: Parallel Section Writing
             </button>
-            <button type="button" class="tab prompt-tab" data-target="tab-p-metadata">
+            <button type="button" onclick="switchPromptTab('tab-p-metadata', this)" class="tab prompt-tab font-semibold py-2.5 transition-all cursor-pointer text-base-content/70 hover:text-base-content" data-target="tab-p-metadata">
                 <i data-lucide="file-text" class="w-3.5 h-3.5 mr-1.5"></i> Pass 3: Metadata Synthesis
             </button>
         </div>
 
         <!-- Section Sub-Tabs (Shown when Pass 2 is active) -->
-        <div id="section-sub-tabs" class="hidden flex items-center gap-1.5 px-6 py-2 bg-base-200/80 border-b border-base-300 overflow-x-auto text-xs">
-            <span class="text-[11px] text-base-content/60 mr-2">Section:</span>
+        <div id="section-sub-tabs" class="hidden items-center gap-1.5 px-6 py-2 bg-base-200/80 border-b border-base-300 overflow-x-auto text-xs">
+            <span class="text-[11px] text-base-content/60 mr-2 shrink-0">Section:</span>
             <button type="button" onclick="switchSectionPrompt('intro', this)" class="btn btn-xs btn-primary sec-tab">Intro</button>
             <button type="button" onclick="switchSectionPrompt('key-takeaways', this)" class="btn btn-xs btn-ghost sec-tab">Key Takeaways</button>
             <button type="button" onclick="switchSectionPrompt('standard', this)" class="btn btn-xs btn-ghost sec-tab">Standard Body</button>
@@ -360,7 +360,7 @@
         <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-base-100">
             <!-- Stats & Copy Action Bar -->
             <div class="flex items-center justify-between p-3 bg-base-200/60 border border-base-300 rounded-xl">
-                <div id="prompt-stats" class="text-xs text-base-content/70 font-mono">Compiled System & User Directives</div>
+                <div id="prompt-stats" class="text-xs text-base-content/70 font-mono">Master Prompt: Complete Single-Pass Directives</div>
                 <div class="flex gap-2">
                     <button type="button" onclick="copyElementText('pre-sys-prompt')" class="btn btn-xs btn-ghost border border-base-300">Copy System</button>
                     <button type="button" onclick="copyElementText('pre-user-prompt')" class="btn btn-xs btn-ghost border border-base-300">Copy User</button>
@@ -372,7 +372,7 @@
             <div class="card bg-base-200/40 border border-base-300 shadow-xs">
                 <div class="card-body p-4">
                     <h4 class="text-xs font-mono font-bold text-emerald-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> System Directives & Banned Words Filter
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> <span id="sys-prompt-header-title">System Directives & Editorial Rules</span>
                     </h4>
                     <pre id="pre-sys-prompt" class="text-xs font-mono text-base-content/90 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto"></pre>
                 </div>
@@ -382,7 +382,7 @@
             <div class="card bg-base-200/40 border border-base-300 shadow-xs">
                 <div class="card-body p-4">
                     <h4 class="text-xs font-mono font-bold text-indigo-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span> Compiled User Prompt Context
+                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span> <span id="user-prompt-header-title">Compiled User Prompt Context</span>
                     </h4>
                     <pre id="pre-user-prompt" class="text-xs font-mono text-base-content/90 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto"></pre>
                 </div>
@@ -408,18 +408,39 @@
     });
 
     // Tabs Switcher for Prompt Inspector
-    $(document).on('click', '.prompt-tab', function() {
-        $('.prompt-tab').removeClass('tab-active');
-        $(this).addClass('tab-active');
-        activePromptTab = $(this).data('target');
+    function switchPromptTab(targetTab, tabElem) {
+        activePromptTab = targetTab;
+
+        // Reset tab styles
+        $('.prompt-tab')
+            .removeClass('tab-active border-b-2 border-primary text-primary font-bold')
+            .addClass('text-base-content/70');
         
-        if (activePromptTab === 'tab-p-sections') {
-            $('#section-sub-tabs').removeClass('hidden');
+        // Highlight active tab
+        if (tabElem) {
+            $(tabElem)
+                .removeClass('text-base-content/70')
+                .addClass('tab-active border-b-2 border-primary text-primary font-bold');
         } else {
-            $('#section-sub-tabs').addClass('hidden');
+            $(`.prompt-tab[data-target="${targetTab}"]`)
+                .removeClass('text-base-content/70')
+                .addClass('tab-active border-b-2 border-primary text-primary font-bold');
         }
+
+        // Section sub-tabs visibility
+        if (activePromptTab === 'tab-p-sections') {
+            $('#section-sub-tabs').removeClass('hidden').addClass('flex');
+        } else {
+            $('#section-sub-tabs').addClass('hidden').removeClass('flex');
+        }
+
+        if (!cachedPromptData) {
+            openPromptInspector();
+            return;
+        }
+
         renderActivePromptView();
-    });
+    }
 
     // Auto-fill Client Context on Change
     $('#client_id').on('change', function() {
@@ -445,13 +466,16 @@
         }
 
         $('#pre-sys-prompt').text('Compiling live unredacted prompt instructions...');
-        $('#pre-user-prompt').text('Loading...');
+        $('#pre-user-prompt').text('Loading context...');
         document.getElementById('prompt_inspector_modal').showModal();
 
         $.ajax({
             url: "{{ route('blog.preview.prompt') }}",
             type: 'POST',
             data: formData,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
             success: function(res) {
                 cachedPromptData = res;
                 $('#prompt-model-badge').text(res.model || res.metadata?.model || 'gemini-2.0-flash');
@@ -473,21 +497,27 @@
             const sys = cachedPromptData.system_prompt 
                 || cachedPromptData.master_prompt?.system 
                 || cachedPromptData.passes?.master?.system_prompt 
-                || 'N/A';
+                || 'No master system directives found.';
             const usr = cachedPromptData.user_prompt 
                 || cachedPromptData.master_prompt?.user 
                 || cachedPromptData.passes?.master?.user_prompt 
-                || 'N/A';
+                || 'No master user prompt found.';
+            $('#sys-prompt-header-title').text('System Directives & Editorial Rules');
+            $('#user-prompt-header-title').text('Compiled User Prompt Context');
+            $('#prompt-stats').text('Master Prompt: Complete Single-Pass Directives');
             $('#pre-sys-prompt').text(sys);
             $('#pre-user-prompt').text(usr);
         } else if (activePromptTab === 'tab-p-outline') {
             const sys = cachedPromptData.passes?.outline?.system_prompt 
                 || cachedPromptData.outline_prompt?.system 
                 || cachedPromptData.system_prompt 
-                || 'N/A';
+                || 'No outline system directives found.';
             const usr = cachedPromptData.passes?.outline?.user_prompt 
                 || cachedPromptData.outline_prompt?.user 
-                || 'Outline Pass Directives';
+                || 'No outline user prompt found.';
+            $('#sys-prompt-header-title').text('Pass 1: Outline Engine System Directives');
+            $('#user-prompt-header-title').text('Pass 1: Outline Architecture & Competitor Directives');
+            $('#prompt-stats').text('Pass 1: JSON Outline Architecture Engine');
             $('#pre-sys-prompt').text(sys);
             $('#pre-user-prompt').text(usr);
         } else if (activePromptTab === 'tab-p-sections') {
@@ -496,10 +526,13 @@
             const sys = cachedPromptData.passes?.metadata?.system_prompt 
                 || cachedPromptData.metadata_prompt?.system 
                 || cachedPromptData.system_prompt 
-                || 'N/A';
+                || 'No metadata system directives found.';
             const usr = cachedPromptData.passes?.metadata?.user_prompt 
                 || cachedPromptData.metadata_prompt?.user 
-                || 'Metadata Pass Directives';
+                || 'No metadata user prompt found.';
+            $('#sys-prompt-header-title').text('Pass 3: Metadata Synthesis System Directives');
+            $('#user-prompt-header-title').text('Pass 3: SEO Title, Meta Description & Schema Prompt');
+            $('#prompt-stats').text('Pass 3: Metadata & JSON-LD Schema Synthesizer');
             $('#pre-sys-prompt').text(sys);
             $('#pre-user-prompt').text(usr);
         }
@@ -509,13 +542,24 @@
         if (btnElem) {
             $('.sec-tab').removeClass('btn-primary').addClass('btn-ghost');
             $(btnElem).removeClass('btn-ghost').addClass('btn-primary');
+        } else {
+            $('.sec-tab').removeClass('btn-primary').addClass('btn-ghost');
+            $('.sec-tab').filter(function() {
+                return ($(this).attr('onclick') || '').indexOf("'" + secType + "'") !== -1;
+            }).removeClass('btn-ghost').addClass('btn-primary');
         }
+
         if (cachedPromptData) {
             const secData = cachedPromptData.passes?.sections?.[secType] 
                 || cachedPromptData.section_prompts?.[secType] 
                 || {};
-            const sys = secData.system_prompt || secData.system || cachedPromptData.system_prompt || 'N/A';
+            const sys = secData.system_prompt || secData.system || cachedPromptData.system_prompt || 'No section system directives found.';
             const usr = secData.user_prompt || secData.user || ('Directives for section: ' + secType);
+            
+            const label = secType.replace(/-/g, ' ').toUpperCase();
+            $('#sys-prompt-header-title').text('Pass 2: [' + label + '] Section System Directives');
+            $('#user-prompt-header-title').text('Pass 2: [' + label + '] Section Writing Context');
+            $('#prompt-stats').text('Pass 2: Parallel Section Copywriter (' + label + ')');
             $('#pre-sys-prompt').text(sys);
             $('#pre-user-prompt').text(usr);
         }
