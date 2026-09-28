@@ -113,7 +113,7 @@
 <script>
     function switchGlobalClient(clientId) {
         $.ajax({
-            url: "{{ route('client.switch') }}",
+            url: "{{ url('/client/switch') }}",
             type: 'POST',
             data: { client_id: clientId },
             success: function(res) {
@@ -129,7 +129,7 @@
     function switchGlobalPreset(presetId) {
         if (!presetId) return;
         $.ajax({
-            url: "{{ route('preset.switch') }}",
+            url: "{{ url('/preset/switch') }}",
             type: 'POST',
             data: { preset_id: presetId },
             success: function(res) {

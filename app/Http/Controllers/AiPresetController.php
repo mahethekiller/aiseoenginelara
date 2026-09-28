@@ -147,8 +147,29 @@ class AiPresetController extends Controller
         $targetPreset = AiPreset::findOrFail($request->preset_id);
 
         if ($user) {
-            AiPreset::where('user_id', $user->id)->update(['is_active' => false]);
-            $targetPreset->update(['is_active' => true]);
+            // Find or clone the target preset for this user so each user has isolated preferences
+            $userPreset = $user->presets()->where('id', $targetPreset->id)->first();
+            if (! $userPreset) {
+                $userPreset = $user->presets()->where('name', $targetPreset->name)->first();
+            }
+
+            if (! $userPreset) {
+                $userPreset = $user->presets()->create([
+                    'name' => $targetPreset->name,
+                    'provider' => $targetPreset->provider,
+                    'model' => $targetPreset->model,
+                    'max_workers' => $targetPreset->max_workers,
+                    'temperature' => $targetPreset->temperature,
+                    'top_p' => $targetPreset->top_p,
+                    'custom_instructions' => $targetPreset->custom_instructions,
+                    'is_active' => true,
+                ]);
+            }
+
+            // Deactivate all user's presets and activate the chosen one
+            $user->presets()->where('id', '!=', $userPreset->id)->update(['is_active' => false]);
+            $userPreset->update(['is_active' => true]);
+            $targetPreset = $userPreset;
         } else {
             AiPreset::query()->update(['is_active' => false]);
             $targetPreset->update(['is_active' => true]);

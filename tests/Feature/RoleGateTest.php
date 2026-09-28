@@ -271,4 +271,74 @@ class RoleGateTest extends TestCase
         $this->assertTrue($preset2->fresh()->is_active);
         $this->assertFalse($preset1->fresh()->is_active);
     }
+
+    public function test_different_users_maintain_isolated_active_presets(): void
+    {
+        $userA = User::factory()->create();
+        $userA->assignRole('viewer');
+        $presetA1 = AiPreset::create([
+            'user_id' => $userA->id,
+            'name' => 'User A Preset 1',
+            'provider' => 'gemini',
+            'model' => 'gemini-2.0-flash',
+            'max_workers' => 3,
+            'temperature' => 0.7,
+            'is_active' => true,
+        ]);
+        $presetA2 = AiPreset::create([
+            'user_id' => $userA->id,
+            'name' => 'User A Preset 2',
+            'provider' => 'openai',
+            'model' => 'gpt-4o',
+            'max_workers' => 2,
+            'temperature' => 0.5,
+            'is_active' => false,
+        ]);
+
+        $userB = User::factory()->create();
+        $userB->assignRole('viewer');
+        $presetB1 = AiPreset::create([
+            'user_id' => $userB->id,
+            'name' => 'User B Preset 1',
+            'provider' => 'anthropic',
+            'model' => 'claude-3-5-sonnet',
+            'max_workers' => 3,
+            'temperature' => 0.6,
+            'is_active' => true,
+        ]);
+        $presetB2 = AiPreset::create([
+            'user_id' => $userB->id,
+            'name' => 'User B Preset 2',
+            'provider' => 'gemini',
+            'model' => 'gemini-1.5-pro',
+            'max_workers' => 2,
+            'temperature' => 0.4,
+            'is_active' => false,
+        ]);
+
+        // User A switches to Preset A2
+        $responseA = $this->actingAs($userA)->postJson('/preset/switch', [
+            'preset_id' => $presetA2->id,
+        ]);
+        $responseA->assertStatus(200);
+
+        // Verify User A switched
+        $this->assertTrue($presetA2->fresh()->is_active);
+        $this->assertFalse($presetA1->fresh()->is_active);
+
+        // Crucial verification: User B's active preset was completely unaffected!
+        $this->assertTrue($presetB1->fresh()->is_active);
+        $this->assertFalse($presetB2->fresh()->is_active);
+
+        // Now User B switches to Preset B2
+        $responseB = $this->actingAs($userB)->postJson('/preset/switch', [
+            'preset_id' => $presetB2->id,
+        ]);
+        $responseB->assertStatus(200);
+
+        // Verify User B switched and User A remains on Preset A2
+        $this->assertTrue($presetB2->fresh()->is_active);
+        $this->assertFalse($presetB1->fresh()->is_active);
+        $this->assertTrue($presetA2->fresh()->is_active);
+    }
 }
