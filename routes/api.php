@@ -37,13 +37,20 @@ Route::middleware('auth:sanctum')->name('api.')->group(function () {
     // Public Models Listing (All auth users)
     Route::get('/models', [SettingsController::class, 'listModels']);
 
-    // Admin-only Settings, API Keys, Models CRUD & User CRUD (Super Admin & Admin)
+    // Admin-only Settings, API Keys, Multi-Provider Presets, Models CRUD & User CRUD (Super Admin & Admin)
     Route::middleware(['role:super_admin|admin'])->group(function () {
         Route::get('/settings/config', [SettingsController::class, 'getConfig']);
         Route::post('/settings/config', [SettingsController::class, 'updateConfig']);
         Route::post('/settings/sync-models', [SettingsController::class, 'syncModels']);
         Route::post('/settings/models', [SettingsController::class, 'addCustomModel']);
         Route::delete('/settings/models', [SettingsController::class, 'deleteSyncedModel']);
+
+        // Multi-Provider Presets (Add/Edit/Delete/Activate)
+        Route::post('/presets', [AiPresetController::class, 'store']);
+        Route::put('/presets/{preset}', [AiPresetController::class, 'update']);
+        Route::patch('/presets/{preset}', [AiPresetController::class, 'update']);
+        Route::delete('/presets/{preset}', [AiPresetController::class, 'destroy']);
+        Route::post('/presets/{preset}/activate', [AiPresetController::class, 'activate']);
 
         Route::apiResource('users', UserController::class);
 
@@ -60,9 +67,9 @@ Route::middleware('auth:sanctum')->name('api.')->group(function () {
     Route::post('/prompt-templates/{id}/duplicate', [PromptTemplateController::class, 'duplicate']);
     Route::post('/prompt-templates/{id}/reset', [PromptTemplateController::class, 'reset']);
 
-    // AI Presets Management (All auth users can manage their own presets)
-    Route::apiResource('presets', AiPresetController::class);
-    Route::post('/presets/{preset}/activate', [AiPresetController::class, 'activate']);
+    // AI Presets Read-Only (All auth users can view available presets)
+    Route::get('/presets', [AiPresetController::class, 'index']);
+    Route::get('/presets/{preset}', [AiPresetController::class, 'show']);
 
     // SEO Blog Creator (Generation requires Creator/Editor)
     Route::middleware(['permission:generate-content'])->group(function () {

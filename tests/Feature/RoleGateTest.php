@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AiPreset;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -31,14 +32,134 @@ class RoleGateTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_viewer_is_blocked_from_settings_config(): void
+    public function test_admin_can_access_web_settings(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $response = $this->actingAs($admin)
+            ->get('/settings');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_viewer_is_forbidden_from_web_settings(): void
     {
         $viewer = User::factory()->create();
         $viewer->assignRole('viewer');
 
-        $response = $this->actingAs($viewer, 'sanctum')
-            ->getJson('/api/settings/config');
+        $response = $this->actingAs($viewer)
+            ->get('/settings');
 
         $response->assertStatus(403);
+    }
+
+    public function test_admin_can_save_preset_via_web(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $response = $this->actingAs($admin)
+            ->post('/settings/presets', [
+                'name' => 'Admin Custom Preset',
+                'provider' => 'gemini',
+                'model' => 'gemini-2.0-flash',
+                'temperature' => 0.7,
+                'max_workers' => 3,
+                'custom_instructions' => 'Strict quality checks',
+            ]);
+
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('ai_presets', [
+            'name' => 'Admin Custom Preset',
+            'provider' => 'gemini',
+        ]);
+    }
+
+    public function test_viewer_is_forbidden_from_saving_preset_via_web(): void
+    {
+        $viewer = User::factory()->create();
+        $viewer->assignRole('viewer');
+
+        $response = $this->actingAs($viewer)
+            ->post('/settings/presets', [
+                'name' => 'Hacker Preset',
+                'provider' => 'gemini',
+                'model' => 'gemini-2.0-flash',
+            ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_admin_can_create_and_activate_preset_via_api(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $createResponse = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/presets', [
+                'name' => 'API Admin Preset',
+                'provider' => 'openai',
+                'model' => 'gpt-4o',
+                'max_workers' => 4,
+                'temperature' => 0.8,
+                'custom_instructions' => 'High quality copy',
+            ]);
+
+        $createResponse->assertStatus(201);
+        $presetId = $createResponse->json('id');
+
+        $activateResponse = $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/presets/{$presetId}/activate");
+
+        $activateResponse->assertStatus(200);
+        $this->assertDatabaseHas('ai_presets', [
+            'id' => $presetId,
+            'is_active' => true,
+        ]);
+    }
+
+    public function test_viewer_is_forbidden_from_creating_or_activating_preset_via_api(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $preset = AiPreset::create([
+            'user_id' => $admin->id,
+            'name' => 'Admin Seed Preset',
+            'provider' => 'gemini',
+            'model' => 'gemini-2.0-flash',
+            'max_workers' => 3,
+            'temperature' => 0.7,
+            'is_active' => false,
+        ]);
+
+        $viewer = User::factory()->create();
+        $viewer->assignRole('viewer');
+
+        // Blocked from creating
+        $createResponse = $this->actingAs($viewer, 'sanctum')
+            ->postJson('/api/presets', [
+                'name' => 'Unauthorized Preset',
+                'provider' => 'gemini',
+                'model' => 'gemini-2.0-flash',
+                'max_workers' => 3,
+                'temperature' => 0.7,
+            ]);
+        $createResponse->assertStatus(403);
+
+        // Blocked from activating
+        $activateResponse = $this->actingAs($viewer, 'sanctum')
+            ->postJson("/api/presets/{$preset->id}/activate");
+        $activateResponse->assertStatus(403);
+
+        // Blocked from deleting
+        $deleteResponse = $this->actingAs($viewer, 'sanctum')
+            ->deleteJson("/api/presets/{$preset->id}");
+        $deleteResponse->assertStatus(403);
+
+        // But allowed to view presets list
+        $viewResponse = $this->actingAs($viewer, 'sanctum')
+            ->getJson('/api/presets');
+        $viewResponse->assertStatus(200);
     }
 }

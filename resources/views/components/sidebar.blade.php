@@ -57,6 +57,7 @@
                 </a>
             </li>
 
+            @role('super_admin|admin')
             <div class="divider my-2 opacity-50"></div>
 
             <li class="menu-title text-[11px] font-bold uppercase tracking-wider text-base-content/50 px-2 py-1">
@@ -74,8 +75,6 @@
                     <span>Token Cost Reports</span>
                 </a>
             </li>
-
-            @role('super_admin|admin')
             <li>
                 <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active bg-primary/15 text-primary font-bold shadow-xs border-l-2 border-primary' : 'text-base-content/75 hover:bg-base-200/80 hover:text-base-content' }} flex items-center gap-2.5 py-2 rounded-lg transition-all">
                     <i data-lucide="users" class="w-4 h-4 text-rose-400"></i>

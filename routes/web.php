@@ -59,17 +59,16 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/articles/{id}/download/{format}', [ArticleController::class, 'download'])->name('articles.download');
     Route::post('/articles/{id}/publish-wp', [ArticleController::class, 'publishToWordPress'])->name('articles.publish.wp');
 
-    // 6. Settings & Presets
-    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
-    Route::post('/settings/api-keys', [SettingsController::class, 'saveApiKeys'])->name('settings.api_keys');
-    Route::post('/settings/presets', [SettingsController::class, 'savePreset'])->name('settings.presets.save');
-    Route::post('/settings/presets/{id}/activate', [SettingsController::class, 'activatePreset'])->name('settings.presets.activate');
-    Route::delete('/settings/presets/{id}', [SettingsController::class, 'deletePreset'])->name('settings.presets.delete');
-    Route::post('/settings/sync-models', [SettingsController::class, 'syncModels'])->name('settings.models.sync');
-    Route::post('/settings/custom-model', [SettingsController::class, 'addCustomModel'])->name('settings.models.add');
-
-    // 7. User Management & RBAC Permissions (Super Admin & Admin)
+    // 6. Settings, Multi-Provider Presets, Users & RBAC Permissions (Super Admin & Admin Only)
     Route::middleware(['role:super_admin|admin'])->group(function () {
+        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings/api-keys', [SettingsController::class, 'saveApiKeys'])->name('settings.api_keys');
+        Route::post('/settings/presets', [SettingsController::class, 'savePreset'])->name('settings.presets.save');
+        Route::post('/settings/presets/{id}/activate', [SettingsController::class, 'activatePreset'])->name('settings.presets.activate');
+        Route::delete('/settings/presets/{id}', [SettingsController::class, 'deletePreset'])->name('settings.presets.delete');
+        Route::post('/settings/sync-models', [SettingsController::class, 'syncModels'])->name('settings.models.sync');
+        Route::post('/settings/custom-model', [SettingsController::class, 'addCustomModel'])->name('settings.models.add');
+
         Route::resource('users', UserController::class);
         Route::get('/permissions', [RolePermissionController::class, 'index'])->name('permissions.index');
         Route::post('/permissions/sync', [RolePermissionController::class, 'sync'])->name('permissions.sync');

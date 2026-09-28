@@ -13,13 +13,10 @@ class SettingsController extends Controller
 {
     public function index(Request $request)
     {
-        $currentUser = auth()->user();
         $configResponse = $this->getConfig($request);
         $config = $configResponse->getData(true);
 
-        $presets = $currentUser
-            ? $currentUser->presets()->orderBy('created_at', 'desc')->get()
-            : AiPreset::orderBy('created_at', 'desc')->get();
+        $presets = AiPreset::orderBy('created_at', 'desc')->get();
 
         $syncedModels = SyncedModel::all()->pluck('models', 'provider')->toArray();
 
@@ -51,13 +48,16 @@ class SettingsController extends Controller
 
         $user = $request->user();
         if ($request->boolean('is_active')) {
-            AiPreset::where('user_id', $user->id)->update(['is_active' => false]);
+            AiPreset::query()->update(['is_active' => false]);
         }
 
-        $preset = AiPreset::updateOrCreate(
-            ['id' => $request->input('id')],
-            array_merge($validated, ['user_id' => $user->id])
-        );
+        $presetId = $request->input('id');
+        if ($presetId) {
+            $preset = AiPreset::findOrFail($presetId);
+            $preset->update($validated);
+        } else {
+            $preset = AiPreset::create(array_merge($validated, ['user_id' => $user->id]));
+        }
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Preset saved successfully.', 'preset' => $preset]);
@@ -68,9 +68,8 @@ class SettingsController extends Controller
 
     public function activatePreset(Request $request, $id)
     {
-        $user = $request->user();
-        AiPreset::where('user_id', $user->id)->update(['is_active' => false]);
-        $preset = AiPreset::where('user_id', $user->id)->findOrFail($id);
+        AiPreset::query()->update(['is_active' => false]);
+        $preset = AiPreset::findOrFail($id);
         $preset->update(['is_active' => true]);
 
         if ($request->expectsJson() || $request->ajax()) {
@@ -82,8 +81,7 @@ class SettingsController extends Controller
 
     public function deletePreset(Request $request, $id)
     {
-        $user = $request->user();
-        $preset = AiPreset::where('user_id', $user->id)->findOrFail($id);
+        $preset = AiPreset::findOrFail($id);
         $preset->delete();
 
         if ($request->expectsJson() || $request->ajax()) {

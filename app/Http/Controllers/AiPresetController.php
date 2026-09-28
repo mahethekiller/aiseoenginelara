@@ -9,8 +9,7 @@ class AiPresetController extends Controller
 {
     public function index(Request $request)
     {
-        $user = $request->user();
-        $presets = $user->presets()->orderBy('created_at', 'desc')->get();
+        $presets = AiPreset::orderBy('created_at', 'desc')->get();
 
         if ($presets->isEmpty()) {
             $standardPresets = [
@@ -53,10 +52,10 @@ class AiPresetController extends Controller
             ];
 
             foreach ($standardPresets as $presetData) {
-                $user->presets()->create($presetData);
+                AiPreset::create(array_merge($presetData, ['user_id' => $request->user()->id]));
             }
 
-            $presets = $user->presets()->orderBy('created_at', 'desc')->get();
+            $presets = AiPreset::orderBy('created_at', 'desc')->get();
         }
 
         return response()->json($presets);
@@ -64,55 +63,53 @@ class AiPresetController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'provider' => 'required|string',
             'model' => 'required|string',
             'max_workers' => 'required|integer|min:1|max:15',
             'temperature' => 'required|numeric|min:0|max:2',
             'custom_instructions' => 'nullable|string',
+            'is_active' => 'nullable|boolean',
         ]);
 
-        $preset = $request->user()->presets()->create($request->all());
+        if ($request->boolean('is_active')) {
+            AiPreset::query()->update(['is_active' => false]);
+        }
+
+        $preset = AiPreset::create(array_merge($validated, ['user_id' => $request->user()->id]));
 
         return response()->json($preset, 201);
     }
 
     public function show(Request $request, AiPreset $preset)
     {
-        if ($preset->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized Access.'], 403);
-        }
-
         return response()->json($preset);
     }
 
     public function update(Request $request, AiPreset $preset)
     {
-        if ($preset->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized Access.'], 403);
-        }
-
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'provider' => 'required|string',
             'model' => 'required|string',
             'max_workers' => 'required|integer|min:1|max:15',
             'temperature' => 'required|numeric|min:0|max:2',
             'custom_instructions' => 'nullable|string',
+            'is_active' => 'nullable|boolean',
         ]);
 
-        $preset->update($request->all());
+        if ($request->boolean('is_active')) {
+            AiPreset::query()->where('id', '!=', $preset->id)->update(['is_active' => false]);
+        }
+
+        $preset->update($validated);
 
         return response()->json($preset);
     }
 
     public function destroy(Request $request, AiPreset $preset)
     {
-        if ($preset->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized Access.'], 403);
-        }
-
         $preset->delete();
 
         return response()->json(['message' => 'Preset deleted successfully']);
@@ -120,11 +117,7 @@ class AiPresetController extends Controller
 
     public function activate(Request $request, AiPreset $preset)
     {
-        if ($preset->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized Access.'], 403);
-        }
-
-        $request->user()->presets()->update(['is_active' => false]);
+        AiPreset::query()->update(['is_active' => false]);
         $preset->refresh();
         $preset->update(['is_active' => true]);
 

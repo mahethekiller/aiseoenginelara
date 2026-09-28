@@ -42,10 +42,17 @@
     <!-- Right Section: Model Badge, Theme Toggle & Profile -->
     <div class="navbar-end flex items-center gap-2">
         <!-- Active LLM Preset Badge -->
-        <a href="{{ route('settings.index') }}" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-base-200 border border-base-300 hover:border-primary/50 transition-colors" title="Active Model Preset">
+        @role('super_admin|admin')
+        <a href="{{ route('settings.index') }}" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-base-200 border border-base-300 hover:border-primary/50 transition-colors" title="Manage Model Presets">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span class="text-base-content/80 font-semibold">{{ $activePreset ? $activePreset->model : 'gemini-2.0-flash' }}</span>
         </a>
+        @else
+        <div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-base-200 border border-base-300 select-none" title="Active Model Preset">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-base-content/80 font-semibold">{{ $activePreset ? $activePreset->model : 'gemini-2.0-flash' }}</span>
+        </div>
+        @endrole
 
         <!-- Dark / Light Mode Toggle Button -->
         <button type="button" onclick="toggleTheme()" class="btn btn-ghost btn-circle btn-sm" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
@@ -67,10 +74,10 @@
                     <span class="text-xs text-base-content/60 font-mono">{{ $currentUser->email }}</span>
                     <span class="badge badge-neutral badge-xs mt-1">{{ $currentUser->getRoleNames()->first() ?? 'User' }}</span>
                 </li>
+                @role('super_admin|admin')
                 <div class="divider my-1"></div>
                 <li><a href="{{ route('settings.index') }}"><i data-lucide="settings" class="w-4 h-4"></i> Settings</a></li>
-                @role('super_admin|admin')
-                    <li><a href="{{ route('users.index') }}"><i data-lucide="users" class="w-4 h-4"></i> Manage Users</a></li>
+                <li><a href="{{ route('users.index') }}"><i data-lucide="users" class="w-4 h-4"></i> Manage Users</a></li>
                 @endrole
                 <div class="divider my-1"></div>
                 <li>
