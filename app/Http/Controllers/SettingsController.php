@@ -125,7 +125,7 @@ class SettingsController extends Controller
             $config = [
                 'execution_mode' => 'live',
                 'current_provider' => 'gemini',
-                'current_model' => 'gemini-2.0-flash',
+                'current_model' => 'gemini-3.5-flash',
                 'provider_base_urls' => [
                     'ollama' => 'http://localhost:11434/v1',
                 ],
@@ -196,7 +196,7 @@ class SettingsController extends Controller
 
         $executionMode = 'live';
         $currentProvider = $request->input('current_provider', $existingConfig['current_provider'] ?? 'gemini');
-        $currentModel = $request->input('current_model', $existingConfig['current_model'] ?? 'gemini-2.0-flash');
+        $currentModel = $request->input('current_model', $existingConfig['current_model'] ?? 'gemini-3.5-flash');
 
         $config = [
             'execution_mode' => $executionMode,
@@ -309,7 +309,7 @@ class SettingsController extends Controller
         if (empty($models)) {
             $models = match ($request->provider) {
                 'openai' => ['gpt-4o-mini', 'gpt-4o', 'o1-mini'],
-                'gemini' => ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+                'gemini' => ['gemini-3.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
                 'anthropic' => ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
                 'deepseek' => ['deepseek-chat', 'deepseek-reasoner'],
                 default => ['standard-model'],

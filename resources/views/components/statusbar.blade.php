@@ -11,7 +11,7 @@
         <span class="flex items-center gap-1.5 font-medium text-base-content/70">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>Engine:</span>
-            <span class="font-mono text-base-content font-semibold">{{ $activePreset ? $activePreset->model : 'gemini-2.0-flash' }}</span>
+            <span class="font-mono text-base-content font-semibold">{{ $activePreset ? $activePreset->model : 'gemini-3.5-flash' }}</span>
         </span>
         <span class="text-base-content/30">•</span>
         <span class="flex items-center gap-1 text-base-content/70">

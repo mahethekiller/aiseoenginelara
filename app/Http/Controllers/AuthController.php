@@ -39,7 +39,7 @@ class AuthController extends Controller
             [
                 'name' => 'Google E-E-A-T Standard',
                 'provider' => 'gemini',
-                'model' => 'gemini-2.0-flash',
+                'model' => 'gemini-3.5-flash',
                 'max_workers' => 3,
                 'temperature' => 0.7,
                 'custom_instructions' => 'Focus on Google E-E-A-T standards. Provide deep first-hand experience insights, expert breakdown, actionable steps, and clear bullet points.',
@@ -48,7 +48,7 @@ class AuthController extends Controller
             [
                 'name' => 'Affiliate Buyer Guide',
                 'provider' => 'gemini',
-                'model' => 'gemini-2.0-flash',
+                'model' => 'gemini-3.5-flash',
                 'max_workers' => 3,
                 'temperature' => 0.7,
                 'custom_instructions' => 'Focus on commercial intent. Compare features, highlight pros & cons, present clear buyer recommendations, and end with a strong purchasing verdict CTA.',

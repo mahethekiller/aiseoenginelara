@@ -136,7 +136,7 @@ class SeoBlogController extends Controller
         $preset = $user ? $user->presets()->where('is_active', true)->orderBy('updated_at', 'desc')->first() : null;
 
         $provider = 'gemini';
-        $model = 'gemini-2.0-flash';
+        $model = 'gemini-3.5-flash';
         $presetInstructions = '';
 
         if ($preset) {
@@ -587,7 +587,7 @@ class SeoBlogController extends Controller
             $preset = $user->presets()->where('is_active', true)->orderBy('updated_at', 'desc')->first();
 
             $provider = 'gemini';
-            $model = 'gemini-2.0-flash';
+            $model = 'gemini-3.5-flash';
             $temperature = 0.7;
             $presetInstructions = '';
 

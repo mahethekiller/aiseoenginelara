@@ -80,7 +80,7 @@ class PipelineController extends Controller
         }
 
         $provider = $preset ? $preset->provider : env('DEFAULT_LLM_PROVIDER', 'gemini');
-        $model = $preset ? $preset->model : env('DEFAULT_LLM_MODEL', 'gemini-2.0-flash');
+        $model = $preset ? $preset->model : env('DEFAULT_LLM_MODEL', 'gemini-3.5-flash');
 
         return new MultiProviderLlmClient($provider, $model);
     }

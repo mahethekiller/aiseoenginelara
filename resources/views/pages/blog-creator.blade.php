@@ -513,7 +513,7 @@
                 <div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <h3 class="font-bold text-sm text-base-content">Complete LLM Prompt Inspector</h3>
-                        <span id="prompt-model-badge" class="badge badge-sm badge-outline badge-primary font-mono">gemini-2.0-flash</span>
+                        <span id="prompt-model-badge" class="badge badge-sm badge-outline badge-primary font-mono">gemini-3.5-flash</span>
                         <span id="prompt-mode-badge" class="badge badge-sm badge-ghost font-mono">Multi-Pass</span>
                         <span id="prompt-pov-badge" class="badge badge-sm badge-neutral font-mono">Second Person</span>
                     </div>
@@ -701,7 +701,7 @@
             },
             success: function(res) {
                 cachedPromptData = res;
-                $('#prompt-model-badge').text(res.model || res.metadata?.model || 'gemini-2.0-flash');
+                $('#prompt-model-badge').text(res.model || res.metadata?.model || 'gemini-3.5-flash');
                 $('#prompt-mode-badge').text(formData.multi_pass_mode ? 'Multi-Pass Parallel' : 'Single-Pass');
                 $('#prompt-pov-badge').text(formData.pov || 'Second Person');
                 renderActivePromptView();

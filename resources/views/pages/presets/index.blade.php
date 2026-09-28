@@ -367,7 +367,7 @@
     const syncedModels = @json($syncedModels);
 
     const defaultProviderModels = {
-        'gemini': ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+        'gemini': ['gemini-3.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
         'openai': ['gpt-4o', 'gpt-4o-mini', 'o1-mini'],
         'anthropic': ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
         'deepseek': ['deepseek-chat', 'deepseek-reasoner']
@@ -420,7 +420,7 @@
         document.getElementById('modal_is_active').checked = false;
         document.getElementById('modal_submit_btn').textContent = 'Create AI Preset';
 
-        updateModelDropdown('gemini-2.0-flash');
+        updateModelDropdown('gemini-3.5-flash');
         document.getElementById('preset_modal').showModal();
     }
 
