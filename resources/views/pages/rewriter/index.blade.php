@@ -93,9 +93,11 @@
                                     <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
                                 </a>
                                 @endif
+                                @hasanyrole('admin|super_admin')
                                 <button type="button" onclick="deleteRewriterJob({{ $job->id }})" class="btn btn-xs btn-square btn-outline btn-error rounded-lg" title="Delete">
                                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                 </button>
+                                @endhasanyrole
                             </div>
                         </td>
                         <td class="font-mono whitespace-nowrap">#{{ $job->id }}</td>

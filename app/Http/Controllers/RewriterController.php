@@ -117,16 +117,22 @@ class RewriterController extends Controller
 
     public function deleteJob(Request $request, $id)
     {
-        $job = RewriterJob::findOrFail($id);
-        $isAdmin = $request->user()->roles()->where('name', 'admin')->exists();
-
-        if (! $isAdmin && $job->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized Access.'], 403);
+        $user = $request->user();
+        if (! $user || ! $user->hasAnyRole(['admin', 'super_admin'])) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['message' => 'Unauthorized. Only administrators can delete rewriter tasks.'], 403);
+            }
+            abort(403, 'Unauthorized. Only administrators can delete rewriter tasks.');
         }
 
+        $job = RewriterJob::findOrFail($id);
         $job->delete();
 
-        return response()->json(['message' => 'Rewriter job deleted successfully.']);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['message' => 'Rewriter job deleted successfully.']);
+        }
+
+        return redirect()->route('rewriter.index')->with('success', 'Rewriter task deleted successfully.');
     }
 
     protected function processJobInController($job)

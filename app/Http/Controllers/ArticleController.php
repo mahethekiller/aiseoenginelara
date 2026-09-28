@@ -60,12 +60,20 @@ class ArticleController extends Controller
         return view('pages.articles.show', compact('article'));
     }
 
-    public function destroy(int|string $id)
+    public function destroy(Request $request, int|string $id)
     {
+        $user = $request->user();
+        if (! $user || ! $user->hasAnyRole(['admin', 'super_admin'])) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['message' => 'Unauthorized. Only administrators can delete articles.'], 403);
+            }
+            abort(403, 'Unauthorized. Only administrators can delete articles.');
+        }
+
         $article = Article::findOrFail($id);
         $article->delete();
 
-        if (request()->expectsJson() || request()->ajax()) {
+        if ($request->expectsJson() || $request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Article deleted successfully.']);
         }
 

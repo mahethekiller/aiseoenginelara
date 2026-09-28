@@ -25,13 +25,16 @@ class ContentManagementTest extends TestCase
 
         $viewContent = Permission::create(['name' => 'view-content']);
 
-        $adminRole = Role::create(['name' => 'admin']);
+        $adminRole = Role::create(['name' => 'admin', 'guard_name' => 'web']);
         $adminRole->givePermissionTo($viewContent);
 
-        $editorRole = Role::create(['name' => 'editor']);
+        $superAdminRole = Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
+        $superAdminRole->givePermissionTo($viewContent);
+
+        $editorRole = Role::create(['name' => 'editor', 'guard_name' => 'web']);
         $editorRole->givePermissionTo($viewContent);
 
-        $viewerRole = Role::create(['name' => 'viewer']);
+        $viewerRole = Role::create(['name' => 'viewer', 'guard_name' => 'web']);
         $viewerRole->givePermissionTo($viewContent);
 
         $this->admin = User::factory()->create();
@@ -107,26 +110,66 @@ class ContentManagementTest extends TestCase
         $responseFiltered->assertJsonFragment(['title' => 'User 2 SEO Blog']);
     }
 
-    public function test_user_cannot_delete_other_user_article()
+    public function test_non_admin_cannot_delete_articles_or_rewriters()
     {
-        $article2 = $this->user2->articles()->first();
+        $article1 = $this->user1->articles()->first();
+        $job1 = $this->user1->rewriterJobs()->first();
 
-        // User 1 tries to delete User 2's article
-        $response = $this->actingAs($this->user1)
-            ->deleteJson("/api/articles/{$article2->id}");
+        // Non-admin tries to delete their OWN article via API & Web -> Forbidden
+        $responseApi = $this->actingAs($this->user1)
+            ->deleteJson("/api/articles/{$article1->id}");
+        $responseApi->assertStatus(403);
 
-        $response->assertStatus(403);
+        $responseWeb = $this->actingAs($this->user1)
+            ->delete("/articles/{$article1->id}");
+        $responseWeb->assertStatus(403);
+
+        // Non-admin tries to delete their OWN rewriter job via API & Web -> Forbidden
+        $responseJobApi = $this->actingAs($this->user1)
+            ->deleteJson("/api/rewriter/jobs/{$job1->id}");
+        $responseJobApi->assertStatus(403);
+
+        $responseJobWeb = $this->actingAs($this->user1)
+            ->delete("/rewriter/jobs/{$job1->id}");
+        $responseJobWeb->assertStatus(403);
+
+        // Ensure records still exist
+        $this->assertDatabaseHas('articles', ['id' => $article1->id]);
+        $this->assertDatabaseHas('rewriter_jobs', ['id' => $job1->id]);
     }
 
-    public function test_admin_can_delete_any_article()
+    public function test_admin_and_super_admin_can_delete_articles_and_rewriters()
     {
         $article2 = $this->user2->articles()->first();
+        $job2 = $this->user2->rewriterJobs()->first();
 
+        // Admin can delete
         $response = $this->actingAs($this->admin)
             ->deleteJson("/api/articles/{$article2->id}");
-
         $response->assertStatus(200);
         $this->assertDatabaseMissing('articles', ['id' => $article2->id]);
+
+        $responseJob = $this->actingAs($this->admin)
+            ->deleteJson("/api/rewriter/jobs/{$job2->id}");
+        $responseJob->assertStatus(200);
+        $this->assertDatabaseMissing('rewriter_jobs', ['id' => $job2->id]);
+
+        // Super Admin can delete
+        $superAdmin = User::factory()->create();
+        $superAdmin->assignRole('super_admin');
+
+        $article1 = $this->user1->articles()->first();
+        $job1 = $this->user1->rewriterJobs()->first();
+
+        $responseSaArticle = $this->actingAs($superAdmin)
+            ->delete("/articles/{$article1->id}");
+        $responseSaArticle->assertRedirect('/articles');
+        $this->assertDatabaseMissing('articles', ['id' => $article1->id]);
+
+        $responseSaJob = $this->actingAs($superAdmin)
+            ->delete("/rewriter/jobs/{$job1->id}");
+        $responseSaJob->assertRedirect('/rewriter');
+        $this->assertDatabaseMissing('rewriter_jobs', ['id' => $job1->id]);
     }
 
     public function test_user_can_preview_prompt_with_compiled_directives()

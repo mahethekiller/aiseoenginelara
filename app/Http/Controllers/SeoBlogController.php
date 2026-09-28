@@ -491,13 +491,12 @@ class SeoBlogController extends Controller
 
     public function deleteArticle(Request $request, $id)
     {
-        $article = Article::findOrFail($id);
-        $isAdmin = $request->user()->roles()->where('name', 'admin')->exists();
-
-        if (! $isAdmin && $article->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized Access.'], 403);
+        $user = $request->user();
+        if (! $user || ! $user->hasAnyRole(['admin', 'super_admin'])) {
+            return response()->json(['message' => 'Unauthorized. Only administrators can delete articles.'], 403);
         }
 
+        $article = Article::findOrFail($id);
         $article->delete();
 
         return response()->json(['message' => 'Article deleted successfully.']);

@@ -154,9 +154,11 @@
                                 <button type="button" onclick="publishArticleToWP({{ $a->id }}, this)" class="btn btn-xs btn-square btn-outline btn-success rounded-lg" title="Publish to Client's WordPress">
                                     <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
                                 </button>
+                                @hasanyrole('admin|super_admin')
                                 <button type="button" onclick="deleteArticleRecord({{ $a->id }})" class="btn btn-xs btn-square btn-outline btn-error rounded-lg" title="Delete Article">
                                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                 </button>
+                                @endhasanyrole
                             </div>
                         </td>
                         <td class="font-bold text-base-content whitespace-nowrap py-3 px-3.5">
