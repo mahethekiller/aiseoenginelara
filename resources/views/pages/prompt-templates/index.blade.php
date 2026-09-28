@@ -93,14 +93,15 @@
 <!-- View Prompt Blueprint Modal (Interactive Directives Viewer) -->
 <!-- ========================================================================= -->
 <dialog id="view_template_modal" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box w-11/12 max-w-4xl bg-base-100 border border-base-300 text-base-content p-0 shadow-2xl rounded-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between">
+    <div class="modal-box w-11/12 max-w-5xl h-[88vh] max-h-[88vh] flex flex-col p-0 bg-base-100 border border-base-300 text-base-content shadow-2xl rounded-2xl overflow-hidden">
+        <!-- Modal Header -->
+        <div class="px-6 py-3.5 border-b border-base-300 bg-base-200/50 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
                     <i data-lucide="file-code-2" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <h3 id="view_tmpl_name" class="font-extrabold text-sm text-base-content">Prompt Blueprint</h3>
+                    <h3 id="view_tmpl_name" class="font-extrabold text-sm text-base-content leading-tight">Prompt Blueprint</h3>
                     <span id="view_tmpl_key" class="text-[10px] font-mono text-base-content/60"></span>
                 </div>
             </div>
@@ -112,56 +113,67 @@
             </div>
         </div>
 
-        <div class="p-6 space-y-4 max-h-[72vh] overflow-y-auto">
-            <!-- Meta Badges & Creator Info -->
-            <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-base-300/70">
-                <div class="flex items-center gap-2 flex-wrap" id="view_tmpl_badges">
-                    <!-- Badges injected dynamically -->
-                </div>
-                <div class="text-[11px] text-base-content/60 font-mono" id="view_tmpl_author">
-                    <!-- Author info injected dynamically -->
-                </div>
-            </div>
+        <!-- Modal Body (Single smooth scrollable container) -->
+        <div class="p-6 flex-1 overflow-y-auto min-h-0 space-y-4">
+            <!-- 2-Column Side-by-Side Widescreen Studio Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                <!-- Left Column: Metadata & Placeholders (5 cols) -->
+                <div class="lg:col-span-5 space-y-4">
+                    <!-- Badges & Creator -->
+                    <div class="space-y-2 pb-3 border-b border-base-300/70">
+                        <div class="flex items-center gap-2 flex-wrap" id="view_tmpl_badges">
+                            <!-- Badges injected dynamically -->
+                        </div>
+                        <div class="text-[11px] text-base-content/60 font-mono" id="view_tmpl_author">
+                            <!-- Author info injected dynamically -->
+                        </div>
+                    </div>
 
-            <!-- Description -->
-            <div id="view_tmpl_desc_container" class="bg-base-200/50 rounded-xl p-3 border border-base-300/60">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50 block mb-0.5">Description</span>
-                <p id="view_tmpl_desc" class="text-xs text-base-content/80 leading-relaxed"></p>
-            </div>
+                    <!-- Description -->
+                    <div id="view_tmpl_desc_container" class="bg-base-200/50 rounded-xl p-3 border border-base-300/60">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50 block mb-0.5">Description</span>
+                        <p id="view_tmpl_desc" class="text-xs text-base-content/80 leading-relaxed"></p>
+                    </div>
 
-            <!-- Dynamic Placeholders -->
-            <div class="space-y-1.5">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Dynamic Placeholders</span>
-                    <span class="text-[10px] text-base-content/40">Click token to copy</span>
-                </div>
-                <div id="view_tmpl_tokens" class="flex flex-wrap gap-1.5">
-                    <!-- Tokens injected dynamically -->
-                </div>
-            </div>
+                    <!-- Dynamic Placeholders -->
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Dynamic Placeholders</span>
+                            <span class="text-[10px] text-base-content/40">Click token to copy</span>
+                        </div>
+                        <div id="view_tmpl_tokens" class="flex flex-wrap gap-1.5">
+                            <!-- Tokens injected dynamically -->
+                        </div>
+                    </div>
 
-            <!-- Prompt Directives Monospace Viewer -->
-            <div class="card bg-base-100 border border-base-300 rounded-xl overflow-hidden">
-                <div class="px-4 py-2.5 bg-base-200/80 border-b border-base-300 flex items-center justify-between">
-                    <span class="font-mono text-xs font-bold text-base-content/80 flex items-center gap-1.5">
-                        <i data-lucide="terminal" class="w-3.5 h-3.5 text-primary"></i> System Prompt Directive
-                    </span>
-                    <button type="button" onclick="copyCurrentPrompt(this)" class="btn btn-xs btn-primary gap-1 font-mono text-xs shadow-xs">
-                        <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Prompt
-                    </button>
+                    <!-- Stats Pill -->
+                    <div class="p-3 bg-base-200/40 rounded-xl border border-base-300 flex items-center justify-between text-xs font-mono">
+                        <span class="text-base-content/60">Canvas Size</span>
+                        <span id="view_tmpl_stats" class="font-bold text-base-content"></span>
+                    </div>
                 </div>
-                <div class="p-4 bg-base-200/30 overflow-x-auto max-h-[350px] overflow-y-auto">
-                    <pre id="view_tmpl_prompt" class="font-mono text-xs text-base-content leading-relaxed whitespace-pre-wrap select-all"></pre>
-                </div>
-                <div class="px-4 py-2 bg-base-200/40 border-t border-base-300 flex items-center justify-between text-[10px] text-base-content/50 font-mono">
-                    <span id="view_tmpl_stats"></span>
-                    <span>Direct AI Template Canvas</span>
+
+                <!-- Right Column: System Prompt Code Canvas (7 cols) -->
+                <div class="lg:col-span-7 flex flex-col">
+                    <div class="card bg-base-100 border border-base-300 rounded-xl overflow-hidden flex flex-col h-full">
+                        <div class="px-4 py-2.5 bg-base-200/80 border-b border-base-300 flex items-center justify-between shrink-0">
+                            <span class="font-mono text-xs font-bold text-base-content/80 flex items-center gap-1.5">
+                                <i data-lucide="terminal" class="w-3.5 h-3.5 text-primary"></i> System Prompt Directive
+                            </span>
+                            <button type="button" onclick="copyCurrentPrompt(this)" class="btn btn-xs btn-primary gap-1 font-mono text-xs shadow-xs">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Prompt
+                            </button>
+                        </div>
+                        <div class="p-4 bg-base-200/30 overflow-x-auto flex-1 min-h-[300px]">
+                            <pre id="view_tmpl_prompt" class="font-mono text-xs text-base-content leading-relaxed whitespace-pre-wrap select-all m-0"></pre>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Modal Footer Actions -->
-        <div class="px-6 py-3.5 bg-base-200/50 border-t border-base-300 flex items-center justify-between">
+        <div class="px-6 py-3.5 bg-base-200/50 border-t border-base-300 flex items-center justify-between shrink-0">
             <button type="button" onclick="document.getElementById('view_template_modal').close()" class="btn btn-ghost btn-sm">Close</button>
             <div class="flex items-center gap-2">
                 <button type="button" id="view_tmpl_btn_clone" onclick="" class="btn btn-outline btn-info btn-sm gap-1.5 font-bold">
@@ -173,6 +185,7 @@
             </div>
         </div>
     </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
 
 <!-- ========================================================================= -->
