@@ -454,7 +454,7 @@
             data: formData,
             success: function(res) {
                 cachedPromptData = res;
-                $('#prompt-model-badge').text(res.model || 'gemini-2.0-flash');
+                $('#prompt-model-badge').text(res.model || res.metadata?.model || 'gemini-2.0-flash');
                 $('#prompt-mode-badge').text(formData.multi_pass_mode ? 'Multi-Pass Parallel' : 'Single-Pass');
                 $('#prompt-pov-badge').text(formData.pov || 'Second Person');
                 renderActivePromptView();
@@ -470,16 +470,38 @@
         if (!cachedPromptData) return;
 
         if (activePromptTab === 'tab-p-master') {
-            $('#pre-sys-prompt').text(cachedPromptData.system_prompt || 'N/A');
-            $('#pre-user-prompt').text(cachedPromptData.user_prompt || 'N/A');
+            const sys = cachedPromptData.system_prompt 
+                || cachedPromptData.master_prompt?.system 
+                || cachedPromptData.passes?.master?.system_prompt 
+                || 'N/A';
+            const usr = cachedPromptData.user_prompt 
+                || cachedPromptData.master_prompt?.user 
+                || cachedPromptData.passes?.master?.user_prompt 
+                || 'N/A';
+            $('#pre-sys-prompt').text(sys);
+            $('#pre-user-prompt').text(usr);
         } else if (activePromptTab === 'tab-p-outline') {
-            $('#pre-sys-prompt').text(cachedPromptData.passes?.outline?.system_prompt || cachedPromptData.system_prompt);
-            $('#pre-user-prompt').text(cachedPromptData.passes?.outline?.user_prompt || 'Outline Pass Directives');
+            const sys = cachedPromptData.passes?.outline?.system_prompt 
+                || cachedPromptData.outline_prompt?.system 
+                || cachedPromptData.system_prompt 
+                || 'N/A';
+            const usr = cachedPromptData.passes?.outline?.user_prompt 
+                || cachedPromptData.outline_prompt?.user 
+                || 'Outline Pass Directives';
+            $('#pre-sys-prompt').text(sys);
+            $('#pre-user-prompt').text(usr);
         } else if (activePromptTab === 'tab-p-sections') {
             switchSectionPrompt('intro');
         } else if (activePromptTab === 'tab-p-metadata') {
-            $('#pre-sys-prompt').text(cachedPromptData.passes?.metadata?.system_prompt || cachedPromptData.system_prompt);
-            $('#pre-user-prompt').text(cachedPromptData.passes?.metadata?.user_prompt || 'Metadata Pass Directives');
+            const sys = cachedPromptData.passes?.metadata?.system_prompt 
+                || cachedPromptData.metadata_prompt?.system 
+                || cachedPromptData.system_prompt 
+                || 'N/A';
+            const usr = cachedPromptData.passes?.metadata?.user_prompt 
+                || cachedPromptData.metadata_prompt?.user 
+                || 'Metadata Pass Directives';
+            $('#pre-sys-prompt').text(sys);
+            $('#pre-user-prompt').text(usr);
         }
     }
 
@@ -488,10 +510,14 @@
             $('.sec-tab').removeClass('btn-primary').addClass('btn-ghost');
             $(btnElem).removeClass('btn-ghost').addClass('btn-primary');
         }
-        if (cachedPromptData && cachedPromptData.passes?.sections) {
-            const secData = cachedPromptData.passes.sections[secType] || {};
-            $('#pre-sys-prompt').text(secData.system_prompt || cachedPromptData.system_prompt);
-            $('#pre-user-prompt').text(secData.user_prompt || 'Directives for section: ' + secType);
+        if (cachedPromptData) {
+            const secData = cachedPromptData.passes?.sections?.[secType] 
+                || cachedPromptData.section_prompts?.[secType] 
+                || {};
+            const sys = secData.system_prompt || secData.system || cachedPromptData.system_prompt || 'N/A';
+            const usr = secData.user_prompt || secData.user || ('Directives for section: ' + secType);
+            $('#pre-sys-prompt').text(sys);
+            $('#pre-user-prompt').text(usr);
         }
     }
 

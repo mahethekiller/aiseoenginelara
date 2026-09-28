@@ -289,6 +289,10 @@ class SeoBlogController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'model' => $model,
+            'provider' => $provider,
+            'system_prompt' => $masterPrompt['system'] ?? '',
+            'user_prompt' => $masterPrompt['user'] ?? '',
             'metadata' => [
                 'provider' => $provider,
                 'model' => $model,
@@ -299,6 +303,50 @@ class SeoBlogController extends Controller
                 'tone' => $params['tone'] ?? ($clientContext['brand_tone'] ?? 'Professional & Authoritative'),
                 'target_audience' => $params['target_audience'] ?? ($clientContext['target_audience'] ?? 'General Audience'),
                 'word_count_category' => $params['word_count'] ?? 'Standard',
+            ],
+            'passes' => [
+                'master' => [
+                    'system_prompt' => $masterPrompt['system'] ?? '',
+                    'user_prompt' => $masterPrompt['user'] ?? '',
+                ],
+                'outline' => [
+                    'system_prompt' => $outlinePrompt['system'] ?? '',
+                    'user_prompt' => $outlinePrompt['user'] ?? '',
+                ],
+                'sections' => [
+                    'intro' => [
+                        'system_prompt' => $sectionIntro['system'] ?? '',
+                        'user_prompt' => $sectionIntro['user'] ?? '',
+                    ],
+                    'key-takeaways' => [
+                        'system_prompt' => $sectionStandard['system'] ?? '',
+                        'user_prompt' => $sectionStandard['user'] ?? '',
+                    ],
+                    'standard' => [
+                        'system_prompt' => $sectionStandard['system'] ?? '',
+                        'user_prompt' => $sectionStandard['user'] ?? '',
+                    ],
+                    'comparison-table' => [
+                        'system_prompt' => $sectionComparison['system'] ?? '',
+                        'user_prompt' => $sectionComparison['user'] ?? '',
+                    ],
+                    'faq' => [
+                        'system_prompt' => $sectionFaq['system'] ?? '',
+                        'user_prompt' => $sectionFaq['user'] ?? '',
+                    ],
+                    'conclusion' => [
+                        'system_prompt' => $sectionConclusion['system'] ?? '',
+                        'user_prompt' => $sectionConclusion['user'] ?? '',
+                    ],
+                    'cta' => [
+                        'system_prompt' => $sectionCta['system'] ?? '',
+                        'user_prompt' => $sectionCta['user'] ?? '',
+                    ],
+                ],
+                'metadata' => [
+                    'system_prompt' => $metadataPrompt['system'] ?? '',
+                    'user_prompt' => $metadataPrompt['user'] ?? '',
+                ],
             ],
             'master_prompt' => $masterPrompt,
             'outline_prompt' => $outlinePrompt,

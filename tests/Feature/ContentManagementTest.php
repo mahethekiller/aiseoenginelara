@@ -128,4 +128,32 @@ class ContentManagementTest extends TestCase
         $response->assertStatus(200);
         $this->assertDatabaseMissing('articles', ['id' => $article2->id]);
     }
+
+    public function test_user_can_preview_prompt_with_compiled_directives()
+    {
+        $response = $this->actingAs($this->user1)
+            ->postJson('/blog-creator/preview-prompt', [
+                'topic' => 'Modern Minimalist Interior Design',
+                'primary_keyword' => 'minimalist interior design',
+                'format' => 'Ultimate Guide',
+            ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'status',
+            'model',
+            'provider',
+            'system_prompt',
+            'user_prompt',
+            'passes' => [
+                'master',
+                'outline',
+                'sections',
+                'metadata',
+            ],
+        ]);
+        $this->assertNotEmpty($response->json('system_prompt'));
+        $this->assertNotEmpty($response->json('user_prompt'));
+        $this->assertStringContainsString('minimalist interior design', $response->json('user_prompt'));
+    }
 }
