@@ -112,6 +112,16 @@
                     <option value="60" {{ request('min_score') == '60' ? 'selected' : '' }}>60+ Passing Score</option>
                 </select>
             </div>
+            @if($isAdmin && $users->count() > 0)
+            <div class="w-48">
+                <select name="user_id" class="select select-bordered select-sm w-full bg-base-200/50 text-xs rounded-lg focus:outline-none focus:border-primary">
+                    <option value="">All Authors</option>
+                    @foreach($users as $u)
+                        <option value="{{ $u->id }}" {{ request('user_id') == $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @endif
             <button type="submit" class="btn btn-sm btn-primary px-4 rounded-lg font-semibold shadow-xs flex items-center gap-1.5">
                 <i data-lucide="filter" class="w-3.5 h-3.5"></i>
                 <span>Filter</span>
@@ -129,6 +139,9 @@
                     <tr>
                         <th class="w-36 text-nowrap py-3 px-3.5">Actions</th>
                         <th class="text-nowrap py-3 px-3.5">Article Title</th>
+                        @if($isAdmin)
+                        <th class="text-nowrap py-3 px-3.5">Author</th>
+                        @endif
                         <th class="text-nowrap py-3 px-3.5">Words</th>
                         <th class="text-nowrap py-3 px-3.5">SEO Score</th>
                         <th class="text-nowrap py-3 px-3.5">Reading Ease</th>
@@ -165,6 +178,16 @@
                             <div class="hover:text-primary transition-colors cursor-pointer" onclick="viewArticleDetails({{ $a->id }})">{{ Str::limit($a->title, 65) }}</div>
                             <div class="text-[10px] text-base-content/50 font-normal font-mono mt-0.5">{{ $a->slug }}</div>
                         </td>
+                        @if($isAdmin)
+                        <td class="whitespace-nowrap py-3 px-3.5">
+                            <div class="flex items-center gap-1.5 font-medium text-base-content">
+                                <span class="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">
+                                    {{ strtoupper(substr($a->user?->name ?? 'U', 0, 1)) }}
+                                </span>
+                                <span class="font-semibold text-xs">{{ $a->user?->name ?? 'System' }}</span>
+                            </div>
+                        </td>
+                        @endif
                         <td class="whitespace-nowrap font-mono text-base-content/80 py-3 px-3.5">{{ number_format($a->word_count) }}</td>
                         <td class="whitespace-nowrap py-3 px-3.5">
                             <span class="badge badge-sm badge-success font-mono font-bold">{{ $a->seo_score }}/100</span>
@@ -186,7 +209,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center py-8 text-base-content/50">
+                        <td colspan="{{ $isAdmin ? 8 : 7 }}" class="text-center py-8 text-base-content/50">
                             No articles generated yet. Create your first piece in the <a href="{{ route('blog.creator') }}" class="text-primary hover:underline">SEO Blog Creator</a>.
                         </td>
                     </tr>

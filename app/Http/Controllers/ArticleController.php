@@ -18,7 +18,16 @@ class ArticleController extends Controller
 
     public function index(Request $request)
     {
+        $user = $request->user();
+        $isAdmin = $user && $user->hasAnyRole(['admin', 'super_admin']);
+
         $query = Article::with(['user', 'generationJob'])->latest();
+
+        if (! $isAdmin) {
+            $query->where('user_id', $user->id);
+        } elseif ($request->filled('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
 
         if ($request->filled('search')) {
             $search = $request->input('search');
@@ -34,23 +43,39 @@ class ArticleController extends Controller
 
         $articles = $query->paginate(15)->withQueryString();
 
-        // Telemetry metrics
+        // Telemetry metrics scoped to user permissions
+        $metricsQuery = $isAdmin
+            ? ($request->filled('user_id') ? Article::where('user_id', $request->input('user_id')) : Article::query())
+            : Article::where('user_id', $user->id);
+
         $metrics = [
-            'total_articles' => Article::count(),
-            'avg_seo_score' => round((float) Article::avg('seo_score'), 1),
-            'avg_flesch_score' => round((float) Article::avg('flesch_reading_ease'), 1),
-            'total_words' => (int) Article::sum('word_count'),
-            'total_published' => Article::whereNotNull('wordpress_post_id')->count(),
+            'total_articles' => (clone $metricsQuery)->count(),
+            'avg_seo_score' => round((float) (clone $metricsQuery)->avg('seo_score'), 1),
+            'avg_flesch_score' => round((float) (clone $metricsQuery)->avg('flesch_reading_ease'), 1),
+            'total_words' => (int) (clone $metricsQuery)->sum('word_count'),
+            'total_published' => (clone $metricsQuery)->whereNotNull('wordpress_post_id')->count(),
         ];
 
-        return view('pages.articles.index', compact('articles', 'metrics'));
+        $users = $isAdmin ? \App\Models\User::orderBy('name')->get(['id', 'name', 'email']) : collect();
+
+        return view('pages.articles.index', compact('articles', 'metrics', 'users', 'isAdmin'));
     }
 
     public function show(Request $request, int|string $id)
     {
+        $user = $request->user();
+        $isAdmin = $user && $user->hasAnyRole(['admin', 'super_admin']);
+
         $article = Article::with(['user', 'generationJob'])->findOrFail($id);
 
-        if ($request->expectsJson() || $request->ajax()) {
+        if (! $isAdmin && $article->user_id !== $user->id) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['message' => 'Unauthorized access to this article.'], 403);
+            }
+            abort(403, 'Unauthorized access to this article.');
+        }
+
+        if ($request->expectsJson() || $request->ajax() || ! view()->exists('pages.articles.show')) {
             return response()->json([
                 'success' => true,
                 'article' => $article,
@@ -80,9 +105,16 @@ class ArticleController extends Controller
         return redirect()->route('articles.index')->with('success', 'Article deleted successfully.');
     }
 
-    public function download(int|string $id, string $format)
+    public function download(Request $request, int|string $id, string $format)
     {
+        $user = $request->user();
+        $isAdmin = $user && $user->hasAnyRole(['admin', 'super_admin']);
+
         $article = Article::findOrFail($id);
+
+        if (! $isAdmin && $article->user_id !== $user?->id) {
+            abort(403, 'Unauthorized access to download this article.');
+        }
 
         if (strtolower($format) === 'docx' || strtolower($format) === 'doc') {
             $content = $this->formatter->buildWordDoc($article);
@@ -103,8 +135,18 @@ class ArticleController extends Controller
 
     public function publishToWordPress(Request $request, int|string $id)
     {
+        $user = $request->user();
+        $isAdmin = $user && $user->hasAnyRole(['admin', 'super_admin']);
+
         $article = Article::findOrFail($id);
-        $user = auth()->user();
+
+        if (! $isAdmin && $article->user_id !== $user?->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access to publish this article.',
+            ], 403);
+        }
+
         $client = $user?->active_client_id ? Client::find($user->active_client_id) : null;
 
         if (! $client || empty($client->wordpress_url)) {

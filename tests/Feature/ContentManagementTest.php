@@ -239,4 +239,48 @@ class ContentManagementTest extends TestCase
             ->assertJsonPath('article.title', 'Test Generated Article')
             ->assertJsonPath('article.html_content', '<p>Generated content body</p>');
     }
+
+    public function test_content_database_web_view_scopes_to_own_articles_for_regular_users()
+    {
+        $response = $this->actingAs($this->user1)->get('/articles');
+        $response->assertStatus(200);
+        $response->assertSee('User 1 SEO Blog');
+        $response->assertDontSee('User 2 SEO Blog');
+    }
+
+    public function test_content_database_web_view_shows_all_articles_for_admin_and_supports_filtering()
+    {
+        // Admin sees both
+        $response = $this->actingAs($this->admin)->get('/articles');
+        $response->assertStatus(200);
+        $response->assertSee('User 1 SEO Blog');
+        $response->assertSee('User 2 SEO Blog');
+
+        // Admin filters for User 2
+        $responseFiltered = $this->actingAs($this->admin)->get("/articles?user_id={$this->user2->id}");
+        $responseFiltered->assertStatus(200);
+        $responseFiltered->assertSee('User 2 SEO Blog');
+        $responseFiltered->assertDontSee('User 1 SEO Blog');
+    }
+
+    public function test_non_admin_cannot_access_or_download_another_users_article()
+    {
+        $article2 = $this->user2->articles()->first();
+
+        // User 1 cannot view User 2's article
+        $viewResponse = $this->actingAs($this->user1)->get("/articles/{$article2->id}");
+        $viewResponse->assertStatus(403);
+
+        // User 1 cannot download User 2's article
+        $downloadResponse = $this->actingAs($this->user1)->get("/articles/{$article2->id}/download/html");
+        $downloadResponse->assertStatus(403);
+
+        // Admin can view and download User 2's article
+        $adminView = $this->actingAs($this->admin)->get("/articles/{$article2->id}");
+        $adminView->assertStatus(200);
+
+        $adminDownload = $this->actingAs($this->admin)->get("/articles/{$article2->id}/download/html");
+        $adminDownload->assertStatus(200);
+    }
 }
+
