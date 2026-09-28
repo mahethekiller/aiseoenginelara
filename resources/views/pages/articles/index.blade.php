@@ -139,9 +139,7 @@
                     <tr>
                         <th class="w-36 text-nowrap py-3 px-3.5">Actions</th>
                         <th class="text-nowrap py-3 px-3.5">Article Title</th>
-                        @if($isAdmin)
-                        <th class="text-nowrap py-3 px-3.5">Author</th>
-                        @endif
+                        <th class="text-nowrap py-3 px-3.5">Created By</th>
                         <th class="text-nowrap py-3 px-3.5">Words</th>
                         <th class="text-nowrap py-3 px-3.5">SEO Score</th>
                         <th class="text-nowrap py-3 px-3.5">Reading Ease</th>
@@ -178,16 +176,19 @@
                             <div class="hover:text-primary transition-colors cursor-pointer" onclick="viewArticleDetails({{ $a->id }})">{{ Str::limit($a->title, 65) }}</div>
                             <div class="text-[10px] text-base-content/50 font-normal font-mono mt-0.5">{{ $a->slug }}</div>
                         </td>
-                        @if($isAdmin)
                         <td class="whitespace-nowrap py-3 px-3.5">
-                            <div class="flex items-center gap-1.5 font-medium text-base-content">
-                                <span class="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">
+                            <div class="flex items-center gap-2 font-medium text-base-content">
+                                <span class="w-6 h-6 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 border border-primary/20">
                                     {{ strtoupper(substr($a->user?->name ?? 'U', 0, 1)) }}
                                 </span>
-                                <span class="font-semibold text-xs">{{ $a->user?->name ?? 'System' }}</span>
+                                <div>
+                                    <span class="font-semibold text-xs text-base-content block">{{ $a->user?->name ?? 'System' }}</span>
+                                    @if($a->user?->email)
+                                    <span class="text-[10px] text-base-content/50 font-mono block">{{ Str::limit($a->user->email, 22) }}</span>
+                                    @endif
+                                </div>
                             </div>
                         </td>
-                        @endif
                         <td class="whitespace-nowrap font-mono text-base-content/80 py-3 px-3.5">{{ number_format($a->word_count) }}</td>
                         <td class="whitespace-nowrap py-3 px-3.5">
                             <span class="badge badge-sm badge-success font-mono font-bold">{{ $a->seo_score }}/100</span>
@@ -209,7 +210,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ $isAdmin ? 8 : 7 }}" class="text-center py-8 text-base-content/50">
+                        <td colspan="8" class="text-center py-8 text-base-content/50">
                             No articles generated yet. Create your first piece in the <a href="{{ route('blog.creator') }}" class="text-primary hover:underline">SEO Blog Creator</a>.
                         </td>
                     </tr>
@@ -227,7 +228,10 @@
 <dialog id="article_modal" class="modal modal-bottom sm:modal-middle">
     <div class="modal-box w-11/12 max-w-5xl bg-base-100 border border-base-300 text-base-content p-0 shadow-2xl rounded-2xl overflow-hidden max-h-[92vh] flex flex-col">
         <div class="px-6 py-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between">
-            <h3 id="modal-article-title" class="font-bold text-sm">Article Preview</h3>
+            <div>
+                <h3 id="modal-article-title" class="font-bold text-sm">Article Preview</h3>
+                <div id="modal-article-meta" class="text-xs text-base-content/60 font-mono mt-0.5"></div>
+            </div>
             <form method="dialog"><button class="btn btn-xs btn-circle btn-ghost">✕</button></form>
         </div>
         <div id="modal-article-body" class="p-6 overflow-y-auto flex-1 prose max-w-none text-base-content">
@@ -242,6 +246,7 @@
     function viewArticleDetails(id) {
         document.getElementById('article_modal').showModal();
         $('#modal-article-body').html('<span class="loading loading-spinner loading-sm"></span> Loading article...');
+        $('#modal-article-meta').text('');
 
         $.ajax({
             url: "/articles/" + id,
@@ -249,6 +254,11 @@
             success: function(res) {
                 const article = res.article || res;
                 $('#modal-article-title').text(article.title);
+
+                const authorName = (article.user && article.user.name) ? article.user.name : 'Unknown';
+                const createdDate = article.created_at ? new Date(article.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+                $('#modal-article-meta').text('Created by ' + authorName + (createdDate ? ' on ' + createdDate : '') + ' • ' + (article.word_count || 0).toLocaleString() + ' words • SEO: ' + (article.seo_score || 0) + '/100');
+
                 $('#modal-article-body').html(article.html_content);
                 window.refreshIcons();
             },

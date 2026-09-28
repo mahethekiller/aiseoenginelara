@@ -15,15 +15,31 @@ class RewriterController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $jobs = $user ? $user->rewriterJobs()->latest()->paginate(10) : RewriterJob::latest()->paginate(10);
+        $isAdmin = $user && $user->hasAnyRole(['admin', 'super_admin']);
+
+        $query = RewriterJob::with('user')->latest();
+
+        if (! $isAdmin) {
+            $query->where('user_id', $user?->id);
+        } elseif ($request->filled('user_id')) {
+            $query->where('user_id', $request->input('user_id'));
+        }
+
+        $jobs = $query->paginate(10)->withQueryString();
+
+        $metricsQuery = $isAdmin
+            ? ($request->filled('user_id') ? RewriterJob::where('user_id', $request->input('user_id')) : RewriterJob::query())
+            : ($user ? $user->rewriterJobs() : RewriterJob::query());
 
         $metrics = [
-            'total_jobs' => $user ? $user->rewriterJobs()->count() : RewriterJob::count(),
-            'completed_jobs' => $user ? $user->rewriterJobs()->where('status', 'completed')->count() : RewriterJob::where('status', 'completed')->count(),
-            'failed_jobs' => $user ? $user->rewriterJobs()->where('status', 'failed')->count() : RewriterJob::where('status', 'failed')->count(),
+            'total_jobs' => (clone $metricsQuery)->count(),
+            'completed_jobs' => (clone $metricsQuery)->where('status', 'completed')->count(),
+            'failed_jobs' => (clone $metricsQuery)->where('status', 'failed')->count(),
         ];
 
-        return view('pages.rewriter.index', compact('jobs', 'metrics'));
+        $users = $isAdmin ? \App\Models\User::orderBy('name')->get(['id', 'name', 'email']) : collect();
+
+        return view('pages.rewriter.index', compact('jobs', 'metrics', 'users', 'isAdmin'));
     }
 
     public function getStatus(Request $request, $id)

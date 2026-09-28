@@ -72,6 +72,7 @@
                         <th class="w-24 text-nowrap">Actions</th>
                         <th class="text-nowrap">ID</th>
                         <th class="text-nowrap">Source URL</th>
+                        <th class="text-nowrap">Created By</th>
                         <th class="text-nowrap">Mode</th>
                         <th class="text-nowrap">Status</th>
                         <th class="text-nowrap">Created</th>
@@ -107,6 +108,14 @@
                                 <i data-lucide="external-link" class="w-3 h-3 shrink-0"></i>
                             </a>
                         </td>
+                        <td class="whitespace-nowrap">
+                            <div class="flex items-center gap-1.5 font-medium text-base-content">
+                                <span class="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 border border-primary/20">
+                                    {{ strtoupper(substr($job->user?->name ?? 'U', 0, 1)) }}
+                                </span>
+                                <span class="font-semibold text-xs">{{ $job->user?->name ?? 'System' }}</span>
+                            </div>
+                        </td>
                         <td class="whitespace-nowrap font-mono text-[11px]">{{ $job->rewriter_mode }}</td>
                         <td class="whitespace-nowrap">
                             @if($job->status === 'completed')
@@ -121,7 +130,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center py-8 text-base-content/50">
+                        <td colspan="7" class="text-center py-8 text-base-content/50">
                             No rewriter jobs executed yet. Paste a URL above to begin.
                         </td>
                     </tr>
