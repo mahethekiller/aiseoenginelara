@@ -185,5 +185,8 @@ class DatabaseSeeder extends Seeder
                 $opt
             );
         }
+
+        // 6. Seed System Archetype Prompt Blueprints
+        $this->call(AiPromptTemplateSeeder::class);
     }
 }
