@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AiPresetController;
+use App\Http\Controllers\AiPresetWebController;
 use App\Http\Controllers\AiUsageLogController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
@@ -49,6 +50,11 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('prompt-templates', PromptTemplateController::class);
     Route::post('/prompt-templates/{id}/duplicate', [PromptTemplateController::class, 'duplicate'])->name('prompt-templates.duplicate');
     Route::post('/prompt-templates/{id}/reset', [PromptTemplateController::class, 'reset'])->name('prompt-templates.reset');
+
+    // 3.5. AI Presets & Tuning (Accessible to All Users)
+    Route::resource('ai-presets', AiPresetWebController::class)->except(['create', 'edit', 'show']);
+    Route::post('/ai-presets/{id}/activate', [AiPresetWebController::class, 'activate'])->name('ai-presets.activate');
+    Route::post('/ai-presets/{id}/clone', [AiPresetWebController::class, 'clone'])->name('ai-presets.clone');
 
     // 4. Rewriter Studio
     Route::get('/rewriter', [RewriterController::class, 'index'])->name('rewriter.index');
