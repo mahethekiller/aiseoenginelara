@@ -175,8 +175,8 @@
 <!-- Create / Edit Client Modal (DaisyUI 5 Modal Standard) -->
 <!-- ========================================================================= -->
 <dialog id="client_modal" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box w-11/12 max-w-3xl bg-base-100 border border-base-300 text-base-content p-0 shadow-2xl rounded-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between">
+    <div class="modal-box w-11/12 max-w-3xl max-h-[90vh] flex flex-col bg-base-100 border border-base-300 text-base-content p-0 shadow-2xl rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between shrink-0">
             <div class="flex items-center gap-2">
                 <i data-lucide="building-2" class="w-5 h-5 text-primary"></i>
                 <h3 id="client-modal-title" class="font-bold text-sm">Add New Agency Client</h3>
@@ -184,71 +184,73 @@
             <form method="dialog"><button class="btn btn-xs btn-circle btn-ghost">✕</button></form>
         </div>
 
-        <form id="client-form" class="p-6 space-y-4">
+        <form id="client-form" class="flex-1 overflow-y-auto min-h-0 flex flex-col">
             @csrf
             <input type="hidden" id="client_form_id" name="id" value="" />
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="label py-0.5 text-xs font-semibold">Client Name <span class="text-error">*</span></label>
-                    <input type="text" id="c_name" name="name" required placeholder="e.g. GEIMS Hospital" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
-                </div>
-                <div>
-                    <label class="label py-0.5 text-xs font-semibold">Website URL <span class="text-error">*</span></label>
-                    <input type="url" id="c_website_url" name="website_url" required placeholder="https://example.com" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="label py-0.5 text-xs font-semibold">Industry / Domain <span class="text-error">*</span></label>
-                    <input type="text" id="c_industry" name="industry" required placeholder="e.g. Healthcare & Medical" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
-                </div>
-                <div>
-                    <label class="label py-0.5 text-xs font-semibold">Brand Tone</label>
-                    <input type="text" id="c_brand_tone" name="brand_tone" placeholder="e.g. Authoritative, Empathetic, Clinical Expert" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
-                </div>
-            </div>
-
-            <div>
-                <label class="label py-0.5 text-xs font-semibold">Target Audience</label>
-                <input type="text" id="c_target_audience" name="target_audience" placeholder="e.g. Patients seeking specialized surgery, hospital attendees" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
-            </div>
-
-            <div>
-                <label class="label py-0.5 text-xs font-semibold">Default Call To Action (CTA)</label>
-                <textarea id="c_cta_default" name="cta_default" rows="2" placeholder="e.g. Book a consultation today at GEIMS Hospital or call +91-XXX-XXXX for emergency appointments." class="textarea textarea-bordered textarea-sm w-full bg-base-200/50 text-xs"></textarea>
-            </div>
-
-            <!-- Sitemap & WordPress Settings Accordion -->
-            <div class="collapse collapse-arrow bg-base-200/50 border border-base-300 rounded-xl">
-                <input type="checkbox" />
-                <div class="collapse-title text-xs font-bold flex items-center gap-2">
-                    <i data-lucide="settings" class="w-3.5 h-3.5 text-primary"></i> Sitemap Crawler & WordPress Publishing Credentials
-                </div>
-                <div class="collapse-content space-y-3 pt-2">
+            <div class="p-6 space-y-4 flex-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="label py-0.5 text-xs font-semibold">Sitemap URL</label>
-                        <input type="url" id="c_sitemap_url" name="sitemap_url" placeholder="https://example.com/sitemap.xml" class="input input-bordered input-sm w-full bg-base-100 text-xs" />
+                        <label class="label py-0.5 text-xs font-semibold">Client Name <span class="text-error">*</span></label>
+                        <input type="text" id="c_name" name="name" required placeholder="e.g. GEIMS Hospital" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="label py-0.5 text-xs font-semibold">Website URL <span class="text-error">*</span></label>
+                        <input type="url" id="c_website_url" name="website_url" required placeholder="https://example.com" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label py-0.5 text-xs font-semibold">Industry / Domain <span class="text-error">*</span></label>
+                        <input type="text" id="c_industry" name="industry" required placeholder="e.g. Healthcare & Medical" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+                    </div>
+                    <div>
+                        <label class="label py-0.5 text-xs font-semibold">Brand Tone</label>
+                        <input type="text" id="c_brand_tone" name="brand_tone" placeholder="e.g. Authoritative, Empathetic, Clinical Expert" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="label py-0.5 text-xs font-semibold">Target Audience</label>
+                    <input type="text" id="c_target_audience" name="target_audience" placeholder="e.g. Patients seeking specialized surgery, hospital attendees" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+                </div>
+
+                <div>
+                    <label class="label py-0.5 text-xs font-semibold">Default Call To Action (CTA)</label>
+                    <textarea id="c_cta_default" name="cta_default" rows="2" placeholder="e.g. Book a consultation today at GEIMS Hospital or call +91-XXX-XXXX for emergency appointments." class="textarea textarea-bordered textarea-sm w-full bg-base-200/50 text-xs"></textarea>
+                </div>
+
+                <!-- Sitemap & WordPress Settings Accordion -->
+                <div class="collapse collapse-arrow bg-base-200/50 border border-base-300 rounded-xl">
+                    <input type="checkbox" />
+                    <div class="collapse-title text-xs font-bold flex items-center gap-2">
+                        <i data-lucide="settings" class="w-3.5 h-3.5 text-primary"></i> Sitemap Crawler & WordPress Publishing Credentials
+                    </div>
+                    <div class="collapse-content space-y-3 pt-2">
                         <div>
-                            <label class="label py-0.5 text-[11px] font-semibold">WordPress REST URL</label>
-                            <input type="url" id="c_wordpress_url" name="wordpress_url" placeholder="https://example.com" class="input input-bordered input-sm w-full bg-base-100 text-xs" />
+                            <label class="label py-0.5 text-xs font-semibold">Sitemap URL</label>
+                            <input type="url" id="c_sitemap_url" name="sitemap_url" placeholder="https://example.com/sitemap.xml" class="input input-bordered input-sm w-full bg-base-100 text-xs" />
                         </div>
-                        <div>
-                            <label class="label py-0.5 text-[11px] font-semibold">WP Username</label>
-                            <input type="text" id="c_wordpress_username" name="wordpress_username" placeholder="admin" class="input input-bordered input-sm w-full bg-base-100 text-xs" />
-                        </div>
-                        <div>
-                            <label class="label py-0.5 text-[11px] font-semibold">WP Application Password</label>
-                            <input type="password" id="c_wordpress_app_password" name="wordpress_app_password" placeholder="•••• •••• •••• ••••" class="input input-bordered input-sm w-full bg-base-100 text-xs" />
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="label py-0.5 text-[11px] font-semibold">WordPress REST URL</label>
+                                <input type="url" id="c_wordpress_url" name="wordpress_url" placeholder="https://example.com" class="input input-bordered input-sm w-full bg-base-100 text-xs" />
+                            </div>
+                            <div>
+                                <label class="label py-0.5 text-[11px] font-semibold">WP Username</label>
+                                <input type="text" id="c_wordpress_username" name="wordpress_username" placeholder="admin" class="input input-bordered input-sm w-full bg-base-100 text-xs" />
+                            </div>
+                            <div>
+                                <label class="label py-0.5 text-[11px] font-semibold">WP Application Password</label>
+                                <input type="password" id="c_wordpress_app_password" name="wordpress_app_password" placeholder="•••• •••• •••• ••••" class="input input-bordered input-sm w-full bg-base-100 text-xs" />
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between pt-2 border-t border-base-300">
+            <div class="px-6 py-3.5 bg-base-200/50 border-t border-base-300 flex items-center justify-between shrink-0 sticky bottom-0 z-10">
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" id="c_is_active" name="is_active" value="1" checked class="checkbox checkbox-primary checkbox-xs" />
                     <span class="text-xs font-medium">Active Client Profile</span>
@@ -260,6 +262,7 @@
             </div>
         </form>
     </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
 @endsection
 

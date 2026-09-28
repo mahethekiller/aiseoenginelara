@@ -79,47 +79,50 @@
 
 <!-- User Create / Edit Modal -->
 <dialog id="user_modal" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box w-11/12 max-w-lg bg-base-100 border border-base-300 text-base-content p-0 shadow-2xl rounded-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between">
+    <div class="modal-box w-11/12 max-w-lg max-h-[90vh] flex flex-col bg-base-100 border border-base-300 text-base-content p-0 shadow-2xl rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between shrink-0">
             <h3 id="user-modal-title" class="font-bold text-sm">Add User</h3>
             <form method="dialog"><button class="btn btn-xs btn-circle btn-ghost">✕</button></form>
         </div>
 
-        <form id="user-form" class="p-6 space-y-4">
+        <form id="user-form" class="flex-1 overflow-y-auto min-h-0 flex flex-col">
             @csrf
             <input type="hidden" id="user_id" name="id" value="" />
 
-            <div>
-                <label class="label py-0.5 text-xs font-semibold">Full Name <span class="text-error">*</span></label>
-                <input type="text" id="u_name" name="name" required placeholder="John Doe" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+            <div class="p-6 space-y-4 flex-1">
+                <div>
+                    <label class="label py-0.5 text-xs font-semibold">Full Name <span class="text-error">*</span></label>
+                    <input type="text" id="u_name" name="name" required placeholder="John Doe" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+                </div>
+
+                <div>
+                    <label class="label py-0.5 text-xs font-semibold">Email Address <span class="text-error">*</span></label>
+                    <input type="email" id="u_email" name="email" required placeholder="john@example.com" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+                </div>
+
+                <div>
+                    <label class="label py-0.5 text-xs font-semibold">Password <span id="pwd-req" class="text-error">*</span></label>
+                    <input type="password" id="u_password" name="password" placeholder="••••••••" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+                    <span class="text-[10px] text-base-content/50" id="pwd-help">Required when creating a new user (min 8 chars).</span>
+                </div>
+
+                <div>
+                    <label class="label py-0.5 text-xs font-semibold">Role <span class="text-error">*</span></label>
+                    <select id="u_role" name="role" class="select select-bordered select-sm w-full bg-base-200/50 text-xs">
+                        <option value="editor">Editor (Can create & generate)</option>
+                        <option value="admin">Admin (Full access)</option>
+                        <option value="viewer">Viewer (Read-only)</option>
+                    </select>
+                </div>
             </div>
 
-            <div>
-                <label class="label py-0.5 text-xs font-semibold">Email Address <span class="text-error">*</span></label>
-                <input type="email" id="u_email" name="email" required placeholder="john@example.com" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
-            </div>
-
-            <div>
-                <label class="label py-0.5 text-xs font-semibold">Password <span id="pwd-req" class="text-error">*</span></label>
-                <input type="password" id="u_password" name="password" placeholder="••••••••" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
-                <span class="text-[10px] text-base-content/50" id="pwd-help">Required when creating a new user (min 8 chars).</span>
-            </div>
-
-            <div>
-                <label class="label py-0.5 text-xs font-semibold">Role <span class="text-error">*</span></label>
-                <select id="u_role" name="role" class="select select-bordered select-sm w-full bg-base-200/50 text-xs">
-                    <option value="editor">Editor (Can create & generate)</option>
-                    <option value="admin">Admin (Full access)</option>
-                    <option value="viewer">Viewer (Read-only)</option>
-                </select>
-            </div>
-
-            <div class="flex items-center justify-end gap-2 pt-2 border-t border-base-300">
+            <div class="px-6 py-3.5 bg-base-200/50 border-t border-base-300 flex items-center justify-end gap-2 shrink-0 sticky bottom-0 z-10">
                 <button type="button" onclick="document.getElementById('user_modal').close()" class="btn btn-ghost btn-sm">Cancel</button>
                 <button type="button" onclick="saveUser(this)" class="btn btn-primary btn-sm font-bold shadow-xs">Save User</button>
             </div>
         </form>
     </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
 @endsection
 

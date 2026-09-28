@@ -192,92 +192,98 @@
 <!-- Template Create/Edit Modal (DaisyUI 5 Modal) -->
 <!-- ========================================================================= -->
 <dialog id="template_modal" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box w-11/12 max-w-4xl bg-base-100 border border-base-300 text-base-content p-0 shadow-2xl rounded-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between">
+    <div class="modal-box w-11/12 max-w-4xl h-[90vh] max-h-[90vh] flex flex-col p-0 bg-base-100 border border-base-300 text-base-content shadow-2xl rounded-2xl overflow-hidden">
+        <!-- Sticky Modal Header -->
+        <div class="px-6 py-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between shrink-0">
             <h3 id="template-modal-title" class="font-bold text-sm">Create Prompt Blueprint Archetype</h3>
             <form method="dialog"><button class="btn btn-xs btn-circle btn-ghost">✕</button></form>
         </div>
 
-        <form id="template-form" class="p-6 space-y-4">
+        <!-- Scrollable Form Body Container -->
+        <form id="template-form" class="flex-1 overflow-y-auto min-h-0 flex flex-col">
             @csrf
             <input type="hidden" id="tmpl_id" name="id" value="" />
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="label py-0.5 text-xs font-semibold">Archetype Name <span class="text-error">*</span></label>
-                    <input type="text" id="tmpl_name" name="archetype_name" required placeholder="e.g. Comparison Matrix & Buying Guide" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+            <div class="p-6 space-y-4 flex-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label py-0.5 text-xs font-semibold">Archetype Name <span class="text-error">*</span></label>
+                        <input type="text" id="tmpl_name" name="archetype_name" required placeholder="e.g. Comparison Matrix & Buying Guide" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+                    </div>
+                    <div>
+                        <label class="label py-0.5 text-xs font-semibold">Associated Agency Client (Optional)</label>
+                        <select id="tmpl_client_id" name="client_id" class="select select-bordered select-sm w-full bg-base-200/50 text-xs">
+                            <option value="">Global (Available to all clients)</option>
+                            @foreach($clients as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
+
                 <div>
-                    <label class="label py-0.5 text-xs font-semibold">Associated Agency Client (Optional)</label>
-                    <select id="tmpl_client_id" name="client_id" class="select select-bordered select-sm w-full bg-base-200/50 text-xs">
-                        <option value="">Global (Available to all clients)</option>
-                        @foreach($clients as $c)
-                            <option value="{{ $c->id }}">{{ $c->name }}</option>
+                    <label class="label py-0.5 text-xs font-semibold">Short Description</label>
+                    <input type="text" id="tmpl_desc" name="description" placeholder="Brief explanation of when to use this archetype" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+                </div>
+
+                <!-- Dynamic Placeholders Click-to-Add Toolbar -->
+                <div class="bg-base-200/60 rounded-xl p-3 border border-base-300 space-y-2">
+                    <div class="flex items-center justify-between flex-wrap gap-1">
+                        <span class="text-xs font-bold text-base-content/80 flex items-center gap-1.5">
+                            <i data-lucide="variable" class="w-3.5 h-3.5 text-primary"></i> Dynamic Placeholders
+                        </span>
+                        <span class="text-[10px] text-base-content/50">Click any chip to insert at cursor position</span>
+                    </div>
+
+                    <!-- Chips Container -->
+                    <div id="modal_placeholder_chips" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                        @php
+                            $standardPlaceholders = [
+                                'brand_name', 'audience', 'tone', 'content_type_label', 
+                                'primary_keyword', 'wireframe_layout', 'word_count', 
+                                'reading_level', 'seo_title', 'meta_description', 
+                                'slug', 'brand_heading', 'internal_links', 'cta', 'schema_directive'
+                            ];
+                        @endphp
+                        @foreach($standardPlaceholders as $chip)
+                            <button type="button" data-chip="{{ $chip }}" onclick="insertPlaceholderAtCursor('{{ $chip }}')" 
+                                    class="badge badge-neutral hover:badge-primary text-[11px] font-mono cursor-pointer transition-all py-2 px-2 hover:scale-105 active:scale-95 shadow-xs" 
+                                    title="Click to insert &#123;&#123;{{ $chip }}&#125;&#125;">
+                                + &#123;&#123;{{ $chip }}&#125;&#125;
+                            </button>
                         @endforeach
-                    </select>
-                </div>
-            </div>
+                    </div>
 
-            <div>
-                <label class="label py-0.5 text-xs font-semibold">Short Description</label>
-                <input type="text" id="tmpl_desc" name="description" placeholder="Brief explanation of when to use this archetype" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
-            </div>
-
-            <!-- Dynamic Placeholders Click-to-Add Toolbar -->
-            <div class="bg-base-200/60 rounded-xl p-3 border border-base-300 space-y-2">
-                <div class="flex items-center justify-between flex-wrap gap-1">
-                    <span class="text-xs font-bold text-base-content/80 flex items-center gap-1.5">
-                        <i data-lucide="variable" class="w-3.5 h-3.5 text-primary"></i> Dynamic Placeholders
-                    </span>
-                    <span class="text-[10px] text-base-content/50">Click any chip to insert at cursor position</span>
-                </div>
-
-                <!-- Chips Container -->
-                <div id="modal_placeholder_chips" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
-                    @php
-                        $standardPlaceholders = [
-                            'brand_name', 'audience', 'tone', 'content_type_label', 
-                            'primary_keyword', 'wireframe_layout', 'word_count', 
-                            'reading_level', 'seo_title', 'meta_description', 
-                            'slug', 'brand_heading', 'internal_links', 'cta', 'schema_directive'
-                        ];
-                    @endphp
-                    @foreach($standardPlaceholders as $chip)
-                        <button type="button" data-chip="{{ $chip }}" onclick="insertPlaceholderAtCursor('{{ $chip }}')" 
-                                class="badge badge-neutral hover:badge-primary text-[11px] font-mono cursor-pointer transition-all py-2 px-2 hover:scale-105 active:scale-95 shadow-xs" 
-                                title="Click to insert &#123;&#123;{{ $chip }}&#125;&#125;">
-                            + &#123;&#123;{{ $chip }}&#125;&#125;
+                    <!-- Quick Custom Token Input -->
+                    <div class="flex items-center gap-2 pt-1 border-t border-base-300/60">
+                        <input type="text" id="custom_chip_input" placeholder="Add custom token (e.g. author_bio)" 
+                               onkeydown="if(event.key==='Enter'){ event.preventDefault(); addCustomChip(); }"
+                               class="input input-bordered input-xs bg-base-100 font-mono text-[11px] w-64" />
+                        <button type="button" onclick="addCustomChip()" class="btn btn-xs btn-outline btn-primary gap-1">
+                            <i data-lucide="plus" class="w-3 h-3"></i> Add Token
                         </button>
-                    @endforeach
+                    </div>
                 </div>
 
-                <!-- Quick Custom Token Input -->
-                <div class="flex items-center gap-2 pt-1 border-t border-base-300/60">
-                    <input type="text" id="custom_chip_input" placeholder="Add custom token (e.g. author_bio)" 
-                           onkeydown="if(event.key==='Enter'){ event.preventDefault(); addCustomChip(); }"
-                           class="input input-bordered input-xs bg-base-100 font-mono text-[11px] w-64" />
-                    <button type="button" onclick="addCustomChip()" class="btn btn-xs btn-outline btn-primary gap-1">
-                        <i data-lucide="plus" class="w-3 h-3"></i> Add Token
-                    </button>
+                <div>
+                    <div class="flex items-center justify-between py-1">
+                        <label class="label p-0 text-xs font-semibold">System Prompt Template Directives <span class="text-error">*</span></label>
+                        <span class="text-[10px] text-base-content/50 font-mono">Use &#123;&#123;variable&#125;&#125; placeholders</span>
+                    </div>
+                    <textarea id="tmpl_system_prompt" name="system_prompt_template" rows="12" required
+                              placeholder="You are an elite expert writer specializing in..."
+                              class="textarea textarea-bordered textarea-sm w-full bg-base-200/50 font-mono text-xs leading-relaxed"></textarea>
                 </div>
             </div>
 
-            <div>
-                <div class="flex items-center justify-between py-1">
-                    <label class="label p-0 text-xs font-semibold">System Prompt Template Directives <span class="text-error">*</span></label>
-                    <span class="text-[10px] text-base-content/50 font-mono">Use &#123;&#123;variable&#125;&#125; placeholders</span>
-                </div>
-                <textarea id="tmpl_system_prompt" name="system_prompt_template" rows="10" required
-                          placeholder="You are an elite expert writer specializing in..."
-                          class="textarea textarea-bordered textarea-sm w-full bg-base-200/50 font-mono text-xs leading-relaxed"></textarea>
-            </div>
-
-            <div class="flex items-center justify-end gap-2 pt-2 border-t border-base-300">
+            <!-- Sticky Modal Footer -->
+            <div class="px-6 py-3.5 bg-base-200/50 border-t border-base-300 flex items-center justify-end gap-2 shrink-0 sticky bottom-0 z-10">
                 <button type="button" onclick="document.getElementById('template_modal').close()" class="btn btn-ghost btn-sm">Cancel</button>
                 <button type="button" onclick="saveTemplate(this)" class="btn btn-primary btn-sm font-bold shadow-xs">Save Blueprint</button>
             </div>
         </form>
     </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
 @endsection
 

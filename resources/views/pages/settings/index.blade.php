@@ -157,58 +157,60 @@
 
 <!-- Preset Create / Edit Modal -->
 <dialog id="preset_modal" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box w-11/12 max-w-2xl bg-base-100 border border-base-300 text-base-content p-0 shadow-2xl rounded-2xl overflow-hidden">
-        <div class="px-6 py-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between">
+    <div class="modal-box w-11/12 max-w-2xl max-h-[90vh] flex flex-col bg-base-100 border border-base-300 text-base-content p-0 shadow-2xl rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between shrink-0">
             <h3 id="preset-modal-title" class="font-bold text-sm">Add AI Preset</h3>
             <form method="dialog"><button class="btn btn-xs btn-circle btn-ghost">✕</button></form>
         </div>
 
-        <form id="preset-form" class="p-6 space-y-4">
+        <form id="preset-form" class="flex-1 overflow-y-auto min-h-0 flex flex-col">
             @csrf
             <input type="hidden" id="p_id" name="id" value="" />
 
-            <div>
-                <label class="label py-0.5 text-xs font-semibold">Preset Name <span class="text-error">*</span></label>
-                <input type="text" id="p_name" name="name" required placeholder="e.g. Gemini 2.0 Flash - High Speed" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+            <div class="p-6 space-y-4 flex-1">
+                <div>
+                    <label class="label py-0.5 text-xs font-semibold">Preset Name <span class="text-error">*</span></label>
+                    <input type="text" id="p_name" name="name" required placeholder="e.g. Gemini 2.0 Flash - High Speed" class="input input-bordered input-sm w-full bg-base-200/50 text-xs" />
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label py-0.5 text-xs font-semibold">LLM Provider <span class="text-error">*</span></label>
+                        <select id="p_provider" name="provider" class="select select-bordered select-sm w-full bg-base-200/50 text-xs">
+                            <option value="gemini">Google Gemini</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic Claude</option>
+                            <option value="deepseek">DeepSeek</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label py-0.5 text-xs font-semibold">Model Identifier <span class="text-error">*</span></label>
+                        <input type="text" id="p_model" name="model" required placeholder="e.g. gemini-2.0-flash, gpt-4o, claude-3-7-sonnet" class="input input-bordered input-sm w-full bg-base-200/50 text-xs font-mono" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="label py-0.5 text-xs font-semibold">Temperature</label>
+                        <input type="number" step="0.05" min="0" max="2" id="p_temperature" name="temperature" value="0.70" class="input input-bordered input-sm w-full bg-base-200/50 text-xs font-mono" />
+                    </div>
+                    <div>
+                        <label class="label py-0.5 text-xs font-semibold">Top P</label>
+                        <input type="number" step="0.05" min="0" max="1" id="p_top_p" name="top_p" value="0.95" class="input input-bordered input-sm w-full bg-base-200/50 text-xs font-mono" />
+                    </div>
+                    <div>
+                        <label class="label py-0.5 text-xs font-semibold">Max Workers</label>
+                        <input type="number" min="1" max="10" id="p_max_workers" name="max_workers" value="4" class="input input-bordered input-sm w-full bg-base-200/50 text-xs font-mono" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="label py-0.5 text-xs font-semibold">Custom System Instructions / Personality</label>
+                    <textarea id="p_custom_instructions" name="custom_instructions" rows="3" placeholder="Additional prompt instructions attached to all generations using this preset..." class="textarea textarea-bordered textarea-sm w-full bg-base-200/50 text-xs"></textarea>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="label py-0.5 text-xs font-semibold">LLM Provider <span class="text-error">*</span></label>
-                    <select id="p_provider" name="provider" class="select select-bordered select-sm w-full bg-base-200/50 text-xs">
-                        <option value="gemini">Google Gemini</option>
-                        <option value="openai">OpenAI</option>
-                        <option value="anthropic">Anthropic Claude</option>
-                        <option value="deepseek">DeepSeek</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="label py-0.5 text-xs font-semibold">Model Identifier <span class="text-error">*</span></label>
-                    <input type="text" id="p_model" name="model" required placeholder="e.g. gemini-2.0-flash, gpt-4o, claude-3-7-sonnet" class="input input-bordered input-sm w-full bg-base-200/50 text-xs font-mono" />
-                </div>
-            </div>
-
-            <div class="grid grid-cols-3 gap-3">
-                <div>
-                    <label class="label py-0.5 text-xs font-semibold">Temperature</label>
-                    <input type="number" step="0.05" min="0" max="2" id="p_temperature" name="temperature" value="0.70" class="input input-bordered input-sm w-full bg-base-200/50 text-xs font-mono" />
-                </div>
-                <div>
-                    <label class="label py-0.5 text-xs font-semibold">Top P</label>
-                    <input type="number" step="0.05" min="0" max="1" id="p_top_p" name="top_p" value="0.95" class="input input-bordered input-sm w-full bg-base-200/50 text-xs font-mono" />
-                </div>
-                <div>
-                    <label class="label py-0.5 text-xs font-semibold">Max Workers</label>
-                    <input type="number" min="1" max="10" id="p_max_workers" name="max_workers" value="4" class="input input-bordered input-sm w-full bg-base-200/50 text-xs font-mono" />
-                </div>
-            </div>
-
-            <div>
-                <label class="label py-0.5 text-xs font-semibold">Custom System Instructions / Personality</label>
-                <textarea id="p_custom_instructions" name="custom_instructions" rows="3" placeholder="Additional prompt instructions attached to all generations using this preset..." class="textarea textarea-bordered textarea-sm w-full bg-base-200/50 text-xs"></textarea>
-            </div>
-
-            <div class="flex items-center justify-between pt-2 border-t border-base-300">
+            <div class="px-6 py-3.5 bg-base-200/50 border-t border-base-300 flex items-center justify-between shrink-0 sticky bottom-0 z-10">
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" id="p_is_active" name="is_active" value="1" class="checkbox checkbox-primary checkbox-xs" />
                     <span class="text-xs font-medium">Set as Default Active Preset</span>
@@ -220,6 +222,7 @@
             </div>
         </form>
     </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
 @endsection
 
