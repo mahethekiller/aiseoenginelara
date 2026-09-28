@@ -287,7 +287,7 @@
         const placeholders = tmpl.available_placeholders || [];
         if (placeholders.length > 0) {
             placeholders.forEach(token => {
-                tokensHtml += `<button type="button" onclick="copyToken('{{' + '${token}' + '}}', this)" class="badge badge-neutral hover:badge-primary text-[11px] font-mono cursor-pointer transition-colors py-2 px-2" title="Click to copy">&#123;&#123;${token}&#125;&#125;</button>`;
+                tokensHtml += `<button type="button" data-token="${token}" onclick="copyTokenName(this)" class="badge badge-neutral hover:badge-primary text-[11px] font-mono cursor-pointer transition-colors py-2 px-2" title="Click to copy">&#123;&#123;${token}&#125;&#125;</button>`;
             });
         } else {
             tokensHtml = '<span class="text-xs text-base-content/50 italic">No placeholders defined.</span>';
@@ -337,9 +337,11 @@
         });
     }
 
-    function copyToken(token, btn) {
+    function copyTokenName(btn) {
+        const raw = btn.getAttribute('data-token');
+        const token = '{' + '{' + raw + '}' + '}';
         navigator.clipboard.writeText(token).then(() => {
-            showToast(`Copied ${token} to clipboard!`, 'success');
+            showToast('Copied ' + token + ' to clipboard!', 'success');
         });
     }
 

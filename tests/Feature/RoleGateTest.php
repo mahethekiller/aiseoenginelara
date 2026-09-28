@@ -180,7 +180,14 @@ class RoleGateTest extends TestCase
             'is_system' => false,
         ]);
 
-        // Web view test
+        // Index listing page test
+        $indexResponse = $this->actingAs($user)
+            ->get('/prompt-templates');
+        $indexResponse->assertStatus(200);
+        $indexResponse->assertSee('SEO Comparison Guide');
+        $indexResponse->assertSee('view_template_modal');
+
+        // Web detail view test
         $webResponse = $this->actingAs($user)
             ->get("/prompt-templates/{$template->id}");
         $webResponse->assertStatus(200);
