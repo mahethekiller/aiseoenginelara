@@ -13,7 +13,7 @@ class AuthController extends Controller
     public function showLoginForm()
     {
         if (Auth::check()) {
-            return redirect()->route('blog.creator');
+            return redirect()->route('dashboard');
         }
 
         return view('auth.login');
@@ -72,7 +72,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('blog.creator');
+        return redirect()->route('dashboard');
     }
 
     public function login(Request $request)
@@ -97,7 +97,7 @@ class AuthController extends Controller
                 ]);
             }
 
-            return redirect()->intended(route('blog.creator'));
+            return redirect()->intended(route('dashboard'));
         }
 
         if ($request->expectsJson() || $request->is('api/*')) {

@@ -2,7 +2,7 @@
     <div>
         <!-- App Logo & Branding -->
         <div class="px-3 py-4 mb-2 flex items-center justify-between border-b border-base-300/70">
-            <a href="{{ route('blog.creator') }}" class="flex items-center gap-2.5">
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-lg border border-primary/20">
                     <i data-lucide="sparkles" class="w-4 h-4"></i>
                 </div>
