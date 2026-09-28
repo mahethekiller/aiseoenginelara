@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AiPresetController;
 use App\Http\Controllers\AiUsageLogController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
@@ -28,8 +29,9 @@ Route::middleware(['auth'])->group(function () {
     // 0. Unified Executive & Creator Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Global Client Switcher
+    // Global Client & Preset Switchers
     Route::post('/client/switch', [ClientController::class, 'switchActiveClient'])->name('client.switch');
+    Route::post('/preset/switch', [AiPresetController::class, 'switchActivePreset'])->name('preset.switch');
 
     // 1. SEO Blog Creator (Core Primary Workspace)
     Route::get('/blog-creator', [SeoBlogController::class, 'index'])->name('blog.creator');

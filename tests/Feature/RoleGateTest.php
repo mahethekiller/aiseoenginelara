@@ -200,4 +200,43 @@ class RoleGateTest extends TestCase
         $jsonResponse->assertStatus(200);
         $jsonResponse->assertJsonPath('template.archetype_name', 'SEO Comparison Guide');
     }
+
+    public function test_user_can_switch_ai_preset_from_header(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('viewer');
+
+        $preset1 = AiPreset::create([
+            'user_id' => $user->id,
+            'name' => 'Fast Gemini Draft',
+            'provider' => 'gemini',
+            'model' => 'gemini-2.0-flash',
+            'max_workers' => 3,
+            'temperature' => 0.7,
+            'is_active' => true,
+        ]);
+
+        $preset2 = AiPreset::create([
+            'user_id' => $user->id,
+            'name' => 'Deep Claude Research',
+            'provider' => 'anthropic',
+            'model' => 'claude-3-5-sonnet',
+            'max_workers' => 2,
+            'temperature' => 0.5,
+            'is_active' => false,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson('/preset/switch', [
+                'preset_id' => $preset2->id,
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('preset.id', $preset2->id)
+            ->assertJsonPath('preset.model', 'claude-3-5-sonnet');
+
+        $this->assertTrue($preset2->fresh()->is_active);
+        $this->assertFalse($preset1->fresh()->is_active);
+    }
 }

@@ -2,8 +2,18 @@
     $currentUser = auth()->user();
     $activeClient = $currentUser ? \App\Models\Client::find($currentUser->active_client_id) : null;
     $allClients = \App\Models\Client::where('is_active', true)->orderBy('name')->get();
-    $activePreset = \App\Models\AiPreset::where('is_active', true)->first() 
-        ?? \App\Models\AiPreset::where('user_id', $currentUser?->id)->where('is_active', true)->first();
+
+    $activePreset = $currentUser 
+        ? ($currentUser->presets()->where('is_active', true)->first() ?? \App\Models\AiPreset::where('is_active', true)->first())
+        : \App\Models\AiPreset::where('is_active', true)->first();
+
+    $allPresets = $currentUser && $currentUser->presets()->exists()
+        ? $currentUser->presets()->orderBy('name')->get()
+        : \App\Models\AiPreset::orderBy('name')->get();
+
+    if ($allPresets->isEmpty()) {
+        $allPresets = \App\Models\AiPreset::all();
+    }
 @endphp
 
 <header class="navbar bg-base-100 border-b border-base-300 px-4 min-h-16 sticky top-0 z-30 shadow-xs">
@@ -39,20 +49,24 @@
         </div>
     </div>
 
-    <!-- Right Section: Model Badge, Theme Toggle & Profile -->
+    <!-- Right Section: Preset Switcher, Theme Toggle & Profile -->
     <div class="navbar-end flex items-center gap-2">
-        <!-- Active LLM Preset Badge -->
-        @role('super_admin|admin')
-        <a href="{{ route('settings.index') }}" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-base-200 border border-base-300 hover:border-primary/50 transition-colors" title="Manage Model Presets">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="text-base-content/80 font-semibold">{{ $activePreset ? $activePreset->model : 'gemini-2.0-flash' }}</span>
-        </a>
-        @else
-        <div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono bg-base-200 border border-base-300 select-none" title="Active Model Preset">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="text-base-content/80 font-semibold">{{ $activePreset ? $activePreset->model : 'gemini-2.0-flash' }}</span>
+        <!-- Interactive AI Preset Quick Switcher -->
+        <div class="flex items-center bg-base-200/80 rounded-lg p-1 border border-base-300 shadow-xs">
+            <span class="text-xs font-semibold px-2 text-base-content/70 flex items-center gap-1.5 shrink-0" title="Active Model Engine">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <i data-lucide="cpu" class="w-3.5 h-3.5 text-primary"></i>
+            </span>
+            <select id="global-preset-switcher" onchange="switchGlobalPreset(this.value)"
+                    class="select select-ghost select-xs text-xs font-mono font-medium focus:outline-none max-w-36 sm:max-w-56 truncate cursor-pointer"
+                    title="Switch Active AI Model Preset">
+                @foreach($allPresets as $preset)
+                    <option value="{{ $preset->id }}" {{ $activePreset && $activePreset->id === $preset->id ? 'selected' : '' }}>
+                        {{ $preset->model }} &bull; {{ $preset->name }}
+                    </option>
+                @endforeach
+            </select>
         </div>
-        @endrole
 
         <!-- Dark / Light Mode Toggle Button -->
         <button type="button" onclick="toggleTheme()" class="btn btn-ghost btn-circle btn-sm" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
@@ -76,7 +90,7 @@
                 </li>
                 @role('super_admin|admin')
                 <div class="divider my-1"></div>
-                <li><a href="{{ route('settings.index') }}"><i data-lucide="settings" class="w-4 h-4"></i> Settings</a></li>
+                <li><a href="{{ route('settings.index') }}"><i data-lucide="settings" class="w-4 h-4"></i> Settings & Presets</a></li>
                 <li><a href="{{ route('users.index') }}"><i data-lucide="users" class="w-4 h-4"></i> Manage Users</a></li>
                 @endrole
                 <div class="divider my-1"></div>
@@ -108,6 +122,22 @@
             },
             error: function(xhr) {
                 showToast(xhr.responseJSON?.message || 'Failed to switch client', 'error');
+            }
+        });
+    }
+
+    function switchGlobalPreset(presetId) {
+        if (!presetId) return;
+        $.ajax({
+            url: "{{ route('preset.switch') }}",
+            type: 'POST',
+            data: { preset_id: presetId },
+            success: function(res) {
+                showToast(res.message || 'AI Preset switched successfully', 'success');
+                setTimeout(() => window.location.reload(), 300);
+            },
+            error: function(xhr) {
+                showToast(xhr.responseJSON?.message || 'Failed to switch AI preset', 'error');
             }
         });
     }

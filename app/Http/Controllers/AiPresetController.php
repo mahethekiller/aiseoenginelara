@@ -123,4 +123,42 @@ class AiPresetController extends Controller
 
         return response()->json(['message' => 'Preset activated', 'preset' => $preset]);
     }
+
+    public function switchActivePreset(Request $request)
+    {
+        $request->validate([
+            'preset_id' => 'required|exists:ai_presets,id',
+        ]);
+
+        $user = $request->user();
+        $targetPreset = AiPreset::findOrFail($request->preset_id);
+
+        if ($user) {
+            AiPreset::where('user_id', $user->id)->update(['is_active' => false]);
+            $targetPreset->update(['is_active' => true]);
+        } else {
+            AiPreset::query()->update(['is_active' => false]);
+            $targetPreset->update(['is_active' => true]);
+        }
+
+        // Also update JSON configuration fallback
+        $path = 'config/app_config.json';
+        if (\Illuminate\Support\Facades\Storage::disk('local')->exists($path)) {
+            $config = json_decode(\Illuminate\Support\Facades\Storage::disk('local')->get($path), true);
+            $config['current_provider'] = $targetPreset->provider;
+            $config['current_model'] = $targetPreset->model;
+            $config['active_preset_id'] = $targetPreset->id;
+            \Illuminate\Support\Facades\Storage::disk('local')->put($path, json_encode($config, JSON_PRETTY_PRINT));
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Switched AI Preset to: {$targetPreset->name} ({$targetPreset->model})",
+                'preset' => $targetPreset,
+            ]);
+        }
+
+        return back()->with('success', "Switched AI Preset to: {$targetPreset->name} ({$targetPreset->model})");
+    }
 }
