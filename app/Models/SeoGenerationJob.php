@@ -19,6 +19,7 @@ class SeoGenerationJob extends Model
         'parameters',
         'total_items',
         'completed_items',
+        'logs',
         'error_message',
     ];
 

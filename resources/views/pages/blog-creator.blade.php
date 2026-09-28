@@ -932,8 +932,9 @@
     }
 
     function logConsole(msg, extraClass = 'text-neutral-content/80') {
-        const time = new Date().toLocaleTimeString();
-        $('#console-logs').append('<div class="' + extraClass + '">[' + time + '] ' + msg + '</div>');
+        const str = String(msg || '');
+        const formattedMsg = str.trim().startsWith('[') ? str : '[' + new Date().toLocaleTimeString() + '] ' + str;
+        $('#console-logs').append('<div class="' + extraClass + '">' + formattedMsg + '</div>');
         const box = document.getElementById('console-logs');
         if (box) box.scrollTop = box.scrollHeight;
     }

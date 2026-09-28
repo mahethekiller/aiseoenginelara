@@ -410,7 +410,10 @@ class SeoBlogController extends Controller
             $job = \App\Models\SeoGenerationJob::findOrFail($id);
         }
 
-        $logs = ! empty($job->logs) ? json_decode($job->logs, true) : [];
+        $logs = [];
+        if (! empty($job->logs)) {
+            $logs = is_array($job->logs) ? $job->logs : (json_decode($job->logs, true) ?: [$job->logs]);
+        }
         $article = $job->articles()->first();
 
         $promptTokens = $article ? $article->prompt_tokens : 0;
