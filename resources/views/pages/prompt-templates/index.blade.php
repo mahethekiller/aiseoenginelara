@@ -26,32 +26,36 @@
         <div class="card bg-base-100 border border-base-300 shadow-sm rounded-2xl p-5 flex flex-col justify-between hover:border-primary/50 transition-colors">
             <div>
                 <div class="flex items-start justify-between gap-2 mb-2">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
+                    <div class="flex items-center gap-2.5 cursor-pointer group" onclick="viewTemplate({{ $tmpl->toJson() }})">
+                        <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold border border-primary/20 group-hover:bg-primary group-hover:text-primary-content transition-colors shrink-0">
                             <i data-lucide="file-code-2" class="w-4 h-4"></i>
                         </div>
                         <div>
-                            <h3 class="font-bold text-sm text-base-content leading-tight">{{ $tmpl->archetype_name }}</h3>
-                            <span class="text-[10px] font-mono text-base-content/50">slug: {{ $tmpl->slug }}</span>
+                            <h3 class="font-bold text-sm text-base-content leading-tight group-hover:text-primary transition-colors">{{ $tmpl->archetype_name }}</h3>
+                            <span class="text-[10px] font-mono text-base-content/50">key: {{ $tmpl->archetype_key }}</span>
                         </div>
                     </div>
                     @if($tmpl->is_system)
-                        <span class="badge badge-sm badge-info badge-outline font-mono text-[10px]">System Lock</span>
+                        <span class="badge badge-sm badge-info badge-outline font-mono text-[10px] shrink-0">System Lock</span>
                     @else
-                        <span class="badge badge-sm badge-ghost font-mono text-[10px]">Custom</span>
+                        <span class="badge badge-sm badge-ghost font-mono text-[10px] shrink-0">Custom</span>
                     @endif
                 </div>
 
-                <p class="text-xs text-base-content/70 line-clamp-3 mb-4 leading-relaxed">
+                <p class="text-xs text-base-content/70 line-clamp-3 mb-3 leading-relaxed">
                     {{ Str::limit($tmpl->description ?? $tmpl->system_prompt_template, 140) }}
                 </p>
 
                 <!-- Token Pills -->
                 <div class="flex flex-wrap gap-1 mb-4">
-                    <span class="badge badge-xs badge-neutral font-mono">{TOPIC}</span>
-                    <span class="badge badge-xs badge-neutral font-mono">{KEYWORDS}</span>
-                    <span class="badge badge-xs badge-neutral font-mono">{BRAND_VOICE}</span>
-                    <span class="badge badge-xs badge-neutral font-mono">{INTERNAL_LINKS}</span>
+                    @forelse(array_slice($tmpl->available_placeholders ?? [], 0, 5) as $ph)
+                        <span class="badge badge-xs badge-neutral font-mono">&#123;&#123;{{ $ph }}&#125;&#125;</span>
+                    @empty
+                        <span class="badge badge-xs badge-ghost font-mono text-[10px]">No tokens</span>
+                    @endforelse
+                    @if(count($tmpl->available_placeholders ?? []) > 5)
+                        <span class="badge badge-xs badge-ghost font-mono text-[10px]">+{{ count($tmpl->available_placeholders) - 5 }} more</span>
+                    @endif
                 </div>
             </div>
 
@@ -61,6 +65,10 @@
                     {{ $tmpl->is_system ? 'Read-only core blueprint' : 'Editable by you' }}
                 </span>
                 <div class="flex items-center gap-1.5">
+                    <!-- Rule 8: View Action Button First -->
+                    <button type="button" onclick="viewTemplate({{ $tmpl->toJson() }})" class="btn btn-xs btn-square btn-outline btn-primary rounded-lg" title="View Prompt Directives">
+                        <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                    </button>
                     @if(!$tmpl->is_system)
                     <button type="button" onclick="editTemplate({{ $tmpl->toJson() }})" class="btn btn-xs btn-square btn-outline btn-warning rounded-lg" title="Edit Blueprint">
                         <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
@@ -80,6 +88,92 @@
         @endforeach
     </div>
 </div>
+
+<!-- ========================================================================= -->
+<!-- View Prompt Blueprint Modal (Interactive Directives Viewer) -->
+<!-- ========================================================================= -->
+<dialog id="view_template_modal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box w-11/12 max-w-4xl bg-base-100 border border-base-300 text-base-content p-0 shadow-2xl rounded-2xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
+                    <i data-lucide="file-code-2" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 id="view_tmpl_name" class="font-extrabold text-sm text-base-content">Prompt Blueprint</h3>
+                    <span id="view_tmpl_key" class="text-[10px] font-mono text-base-content/60"></span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <a id="view_tmpl_permalink" href="#" class="btn btn-xs btn-ghost gap-1 text-[11px] text-primary" title="Open Dedicated Page">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Full Page
+                </a>
+                <form method="dialog"><button class="btn btn-xs btn-circle btn-ghost">✕</button></form>
+            </div>
+        </div>
+
+        <div class="p-6 space-y-4 max-h-[72vh] overflow-y-auto">
+            <!-- Meta Badges & Creator Info -->
+            <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-base-300/70">
+                <div class="flex items-center gap-2 flex-wrap" id="view_tmpl_badges">
+                    <!-- Badges injected dynamically -->
+                </div>
+                <div class="text-[11px] text-base-content/60 font-mono" id="view_tmpl_author">
+                    <!-- Author info injected dynamically -->
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div id="view_tmpl_desc_container" class="bg-base-200/50 rounded-xl p-3 border border-base-300/60">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50 block mb-0.5">Description</span>
+                <p id="view_tmpl_desc" class="text-xs text-base-content/80 leading-relaxed"></p>
+            </div>
+
+            <!-- Dynamic Placeholders -->
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/50">Dynamic Placeholders</span>
+                    <span class="text-[10px] text-base-content/40">Click token to copy</span>
+                </div>
+                <div id="view_tmpl_tokens" class="flex flex-wrap gap-1.5">
+                    <!-- Tokens injected dynamically -->
+                </div>
+            </div>
+
+            <!-- Prompt Directives Monospace Viewer -->
+            <div class="card bg-base-100 border border-base-300 rounded-xl overflow-hidden">
+                <div class="px-4 py-2.5 bg-base-200/80 border-b border-base-300 flex items-center justify-between">
+                    <span class="font-mono text-xs font-bold text-base-content/80 flex items-center gap-1.5">
+                        <i data-lucide="terminal" class="w-3.5 h-3.5 text-primary"></i> System Prompt Directive
+                    </span>
+                    <button type="button" onclick="copyCurrentPrompt(this)" class="btn btn-xs btn-primary gap-1 font-mono text-xs shadow-xs">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Prompt
+                    </button>
+                </div>
+                <div class="p-4 bg-base-200/30 overflow-x-auto max-h-[350px] overflow-y-auto">
+                    <pre id="view_tmpl_prompt" class="font-mono text-xs text-base-content leading-relaxed whitespace-pre-wrap select-all"></pre>
+                </div>
+                <div class="px-4 py-2 bg-base-200/40 border-t border-base-300 flex items-center justify-between text-[10px] text-base-content/50 font-mono">
+                    <span id="view_tmpl_stats"></span>
+                    <span>Direct AI Template Canvas</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="px-6 py-3.5 bg-base-200/50 border-t border-base-300 flex items-center justify-between">
+            <button type="button" onclick="document.getElementById('view_template_modal').close()" class="btn btn-ghost btn-sm">Close</button>
+            <div class="flex items-center gap-2">
+                <button type="button" id="view_tmpl_btn_clone" onclick="" class="btn btn-outline btn-info btn-sm gap-1.5 font-bold">
+                    <i data-lucide="copy-plus" class="w-4 h-4"></i> Clone Blueprint
+                </button>
+                <button type="button" id="view_tmpl_btn_edit" onclick="" class="btn btn-warning btn-sm gap-1.5 font-bold hidden">
+                    <i data-lucide="edit-2" class="w-4 h-4"></i> Edit Blueprint
+                </button>
+            </div>
+        </div>
+    </div>
+</dialog>
 
 <!-- ========================================================================= -->
 <!-- Template Create/Edit Modal (DaisyUI 5 Modal) -->
@@ -119,7 +213,7 @@
             <div>
                 <div class="flex items-center justify-between py-1">
                     <label class="label p-0 text-xs font-semibold">System Prompt Template Directives <span class="text-error">*</span></label>
-                    <span class="text-[10px] text-base-content/50 font-mono">Use {TOPIC}, {KEYWORDS}, {BRAND_VOICE}, {POV}</span>
+                    <span class="text-[10px] text-base-content/50 font-mono">Use &#123;&#123;variable&#125;&#125; placeholders</span>
                 </div>
                 <textarea id="tmpl_system_prompt" name="system_prompt_template" rows="10" required
                           placeholder="You are an elite expert writer specializing in..."
@@ -137,6 +231,118 @@
 
 @push('scripts')
 <script>
+    let currentViewTemplate = null;
+
+    function viewTemplate(tmpl) {
+        if (typeof tmpl === 'number' || typeof tmpl === 'string') {
+            $.getJSON('/prompt-templates/' + tmpl, function(res) {
+                if (res.success && res.template) {
+                    renderViewModal(res.template);
+                }
+            });
+            return;
+        }
+        renderViewModal(tmpl);
+    }
+
+    function renderViewModal(tmpl) {
+        currentViewTemplate = tmpl;
+        $('#view_tmpl_name').text(tmpl.archetype_name);
+        $('#view_tmpl_key').text('Key: ' + (tmpl.archetype_key || tmpl.slug || ''));
+        $('#view_tmpl_permalink').attr('href', '/prompt-templates/' + tmpl.id);
+
+        // Badges
+        let badgesHtml = '';
+        if (tmpl.is_system) {
+            badgesHtml += '<span class="badge badge-info badge-outline badge-sm font-mono text-[10px]">System Lock</span>';
+        } else {
+            badgesHtml += '<span class="badge badge-ghost badge-sm font-mono text-[10px]">Custom Blueprint</span>';
+        }
+        if (tmpl.is_active) {
+            badgesHtml += '<span class="badge badge-success badge-outline badge-sm text-[10px]">Active</span>';
+        } else {
+            badgesHtml += '<span class="badge badge-error badge-outline badge-sm text-[10px]">Inactive</span>';
+        }
+        if (tmpl.client && tmpl.client.name) {
+            badgesHtml += `<span class="badge badge-primary badge-outline badge-sm text-[10px]">${tmpl.client.name}</span>`;
+        } else {
+            badgesHtml += '<span class="badge badge-neutral badge-sm text-[10px]">Global</span>';
+        }
+        $('#view_tmpl_badges').html(badgesHtml);
+
+        // Author
+        let authorText = tmpl.is_system ? 'System Default Archetype' : (tmpl.user ? `Created by ${tmpl.user.name}` : 'User Custom');
+        $('#view_tmpl_author').text(authorText);
+
+        // Description
+        if (tmpl.description) {
+            $('#view_tmpl_desc').text(tmpl.description);
+            $('#view_tmpl_desc_container').show();
+        } else {
+            $('#view_tmpl_desc_container').hide();
+        }
+
+        // Placeholders
+        let tokensHtml = '';
+        const placeholders = tmpl.available_placeholders || [];
+        if (placeholders.length > 0) {
+            placeholders.forEach(token => {
+                tokensHtml += `<button type="button" onclick="copyToken('{{' + '${token}' + '}}', this)" class="badge badge-neutral hover:badge-primary text-[11px] font-mono cursor-pointer transition-colors py-2 px-2" title="Click to copy">&#123;&#123;${token}&#125;&#125;</button>`;
+            });
+        } else {
+            tokensHtml = '<span class="text-xs text-base-content/50 italic">No placeholders defined.</span>';
+        }
+        $('#view_tmpl_tokens').html(tokensHtml);
+
+        // Prompt text & stats
+        const promptText = tmpl.system_prompt_template || '';
+        $('#view_tmpl_prompt').text(promptText);
+        const words = promptText.trim().split(/\s+/).filter(Boolean).length;
+        $('#view_tmpl_stats').text(`${promptText.length.toLocaleString()} characters • ${words.toLocaleString()} words`);
+
+        // Clone button
+        $('#view_tmpl_btn_clone').attr('onclick', `duplicateTemplate(${tmpl.id})`);
+
+        // Edit button
+        if (!tmpl.is_system && (tmpl.is_owner !== false)) {
+            $('#view_tmpl_btn_edit').removeClass('hidden').attr('onclick', 'openEditFromView()');
+        } else {
+            $('#view_tmpl_btn_edit').addClass('hidden');
+        }
+
+        document.getElementById('view_template_modal').showModal();
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function openEditFromView() {
+        document.getElementById('view_template_modal').close();
+        if (currentViewTemplate) {
+            editTemplate(currentViewTemplate);
+        }
+    }
+
+    function copyCurrentPrompt(btn) {
+        if (!currentViewTemplate) return;
+        navigator.clipboard.writeText(currentViewTemplate.system_prompt_template).then(() => {
+            const orig = $(btn).html();
+            $(btn).html('<i data-lucide="check" class="w-3.5 h-3.5 text-success"></i> Copied!');
+            if (window.lucide) lucide.createIcons();
+            showToast('Prompt copied to clipboard!', 'success');
+            setTimeout(() => {
+                $(btn).html(orig);
+                if (window.lucide) lucide.createIcons();
+            }, 2000);
+        }).catch(err => {
+            showToast('Failed to copy: ' + err, 'error');
+        });
+    }
+
+    function copyToken(token, btn) {
+        navigator.clipboard.writeText(token).then(() => {
+            showToast(`Copied ${token} to clipboard!`, 'success');
+        });
+    }
+
     function openCreateTemplateModal() {
         $('#template-modal-title').text('Create Custom Prompt Blueprint');
         $('#tmpl_id').val('');

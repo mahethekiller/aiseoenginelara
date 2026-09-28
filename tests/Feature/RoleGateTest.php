@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AiPreset;
+use App\Models\AiPromptTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -161,5 +162,35 @@ class RoleGateTest extends TestCase
         $viewResponse = $this->actingAs($viewer, 'sanctum')
             ->getJson('/api/presets');
         $viewResponse->assertStatus(200);
+    }
+
+    public function test_user_can_view_prompt_template_web_and_json(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('viewer');
+
+        $template = AiPromptTemplate::create([
+            'user_id' => $user->id,
+            'archetype_key' => 'test_prompt_blueprint',
+            'archetype_name' => 'SEO Comparison Guide',
+            'description' => 'Detailed product comparisons',
+            'system_prompt_template' => 'Write a comparison article for {{brand_name}} covering {{audience}}.',
+            'available_placeholders' => ['brand_name', 'audience'],
+            'is_active' => true,
+            'is_system' => false,
+        ]);
+
+        // Web view test
+        $webResponse = $this->actingAs($user)
+            ->get("/prompt-templates/{$template->id}");
+        $webResponse->assertStatus(200);
+        $webResponse->assertSee('SEO Comparison Guide');
+        $webResponse->assertSee('Write a comparison article');
+
+        // JSON API test
+        $jsonResponse = $this->actingAs($user, 'sanctum')
+            ->getJson("/api/prompt-templates/{$template->id}");
+        $jsonResponse->assertStatus(200);
+        $jsonResponse->assertJsonPath('template.archetype_name', 'SEO Comparison Guide');
     }
 }

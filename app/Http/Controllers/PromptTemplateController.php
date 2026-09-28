@@ -106,12 +106,16 @@ class PromptTemplateController extends Controller
     /**
      * Display the specified prompt template.
      */
-    public function show(Request $request, $id): JsonResponse
+    public function show(Request $request, $id)
     {
         $template = AiPromptTemplate::with(['user:id,name,email', 'client:id,name'])->find($id);
 
         if (! $template) {
-            return response()->json(['success' => false, 'message' => 'Prompt template not found.'], 404);
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Prompt template not found.'], 404);
+            }
+
+            return redirect()->route('prompt-templates.index')->with('error', 'Prompt template not found.');
         }
 
         $userId = $request->user() ? $request->user()->id : null;
@@ -122,10 +126,14 @@ class PromptTemplateController extends Controller
 
         $template->is_owner = $isSuperAdmin || ($template->user_id && $template->user_id === $userId);
 
-        return response()->json([
-            'success' => true,
-            'template' => $template,
-        ]);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'template' => $template,
+            ]);
+        }
+
+        return view('pages.prompt-templates.show', compact('template'));
     }
 
     /**
