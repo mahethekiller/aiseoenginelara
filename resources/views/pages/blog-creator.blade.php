@@ -4,6 +4,178 @@
 @section('page_title', 'SEO Blog Creator')
 @section('page_badge', 'Primary Workspace')
 
+@push('styles')
+<style>
+    /* Premium Scoped Typography for Workbench Article Preview */
+    .article-preview-body {
+        color: var(--color-base-content, #e2e8f0);
+        font-size: 0.95rem;
+        line-height: 1.8;
+        font-style: normal;
+        text-align: left;
+    }
+    .article-preview-body h1 {
+        font-size: 1.85rem;
+        font-weight: 800;
+        line-height: 1.3;
+        margin-top: 1.5rem;
+        margin-bottom: 1.25rem;
+        color: var(--color-base-content, #fff);
+        border-bottom: 2px solid oklch(var(--p) / 0.4);
+        padding-bottom: 0.6rem;
+    }
+    .article-preview-body h2 {
+        font-size: 1.45rem;
+        font-weight: 700;
+        line-height: 1.35;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        color: oklch(var(--p));
+        border-bottom: 1px solid oklch(var(--bc) / 0.15);
+        padding-bottom: 0.5rem;
+    }
+    .article-preview-body h3 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+        color: var(--color-base-content, #fff);
+    }
+    .article-preview-body h4 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin-top: 1.25rem;
+        margin-bottom: 0.5rem;
+        color: var(--color-base-content, #fff);
+    }
+    .article-preview-body p {
+        margin-bottom: 1.25rem;
+        color: oklch(var(--bc) / 0.88);
+        text-align: left;
+        font-style: normal;
+        font-size: 0.95rem;
+    }
+    .article-preview-body ul, .article-preview-body ol {
+        margin-bottom: 1.25rem;
+        padding-left: 1.75rem;
+        color: oklch(var(--bc) / 0.88);
+        text-align: left;
+    }
+    .article-preview-body ul {
+        list-style-type: disc;
+    }
+    .article-preview-body ol {
+        list-style-type: decimal;
+    }
+    .article-preview-body li {
+        margin-bottom: 0.5rem;
+        line-height: 1.65;
+        font-style: normal;
+    }
+    .article-preview-body strong, .article-preview-body b {
+        color: var(--color-base-content, #fff);
+        font-weight: 700;
+    }
+    .article-preview-body a {
+        color: oklch(var(--p));
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        transition: opacity 0.15s ease;
+    }
+    .article-preview-body a:hover {
+        opacity: 0.8;
+    }
+    .article-preview-body .key-takeaways {
+        background: oklch(var(--p) / 0.08);
+        border-left: 4px solid oklch(var(--p));
+        border-radius: 0.75rem;
+        padding: 1.25rem 1.5rem;
+        margin: 1.75rem 0;
+        border-top: 1px solid oklch(var(--p) / 0.15);
+        border-right: 1px solid oklch(var(--p) / 0.15);
+        border-bottom: 1px solid oklch(var(--p) / 0.15);
+    }
+    .article-preview-body .key-takeaways h3, .article-preview-body .key-takeaways h4 {
+        color: oklch(var(--p));
+        margin-top: 0;
+        margin-bottom: 0.75rem;
+        font-size: 1.15rem;
+    }
+    .article-preview-body .cta-box {
+        background: linear-gradient(135deg, oklch(var(--p) / 0.2) 0%, oklch(var(--s) / 0.2) 100%);
+        border: 1px solid oklch(var(--p) / 0.35);
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        margin: 2.25rem 0;
+    }
+    .article-preview-body .ai-image-card {
+        background: oklch(var(--b2) / 0.6);
+        border: 1.5px dashed oklch(var(--bc) / 0.25);
+        border-radius: 0.75rem;
+        padding: 1rem 1.25rem;
+        margin: 1.75rem 0;
+    }
+    .article-preview-body .image-card-header {
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: oklch(var(--p));
+        margin-bottom: 0.5rem;
+    }
+    .article-preview-body .image-card-body p {
+        font-size: 0.85rem;
+        margin-bottom: 0.35rem;
+    }
+    .article-preview-body .image-card-body code {
+        background: oklch(var(--b3));
+        color: oklch(var(--bc));
+        padding: 0.2rem 0.4rem;
+        border-radius: 0.375rem;
+        font-size: 0.8rem;
+        word-break: break-all;
+    }
+    .article-preview-body table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 1.75rem 0;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        border: 1px solid oklch(var(--bc) / 0.15);
+    }
+    .article-preview-body th {
+        background: oklch(var(--b2));
+        color: var(--color-base-content, #fff);
+        font-weight: 700;
+        text-align: left;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        border-bottom: 1px solid oklch(var(--bc) / 0.2);
+    }
+    .article-preview-body td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid oklch(var(--bc) / 0.1);
+        font-size: 0.85rem;
+        color: oklch(var(--bc) / 0.9);
+    }
+    .article-preview-body tr:last-child td {
+        border-bottom: none;
+    }
+    .article-preview-body tr:nth-child(even) td {
+        background: oklch(var(--b2) / 0.3);
+    }
+    .article-preview-body blockquote {
+        border-left: 3px solid oklch(var(--p));
+        padding-left: 1rem;
+        margin: 1.5rem 0;
+        font-style: italic;
+        color: oklch(var(--bc) / 0.8);
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 min-h-[calc(100vh-8.5rem)]">
     <!-- Left Column: Article Parameters Form (5 Cols on XL) -->
@@ -238,58 +410,88 @@
             </div>
 
             <!-- View Tabs (Rendered Preview, HTML Code, SEO Audit) -->
-            <div class="tabs tabs-bordered bg-base-200/50 px-4 border-b border-base-300 text-xs">
-                <button type="button" class="tab tab-active wb-tab" data-target="tab-rendered">
+            <div class="tabs tabs-border bg-base-200/40 px-4 border-b border-base-300 text-xs flex items-center gap-1">
+                <button type="button" onclick="switchWorkbenchTab('tab-rendered', this)" id="tab-btn-rendered"
+                        class="tab wb-tab tab-active font-semibold py-2.5 transition-all cursor-pointer border-b-2 border-primary text-primary" data-target="tab-rendered">
                     <i data-lucide="layout" class="w-3.5 h-3.5 mr-1.5"></i> Formatted Preview
                 </button>
-                <button type="button" class="tab wb-tab" data-target="tab-source">
+                <button type="button" onclick="switchWorkbenchTab('tab-source', this)" id="tab-btn-source"
+                        class="tab wb-tab font-semibold py-2.5 transition-all cursor-pointer text-base-content/70 hover:text-base-content" data-target="tab-source">
                     <i data-lucide="code-2" class="w-3.5 h-3.5 mr-1.5"></i> Raw HTML Code
                 </button>
-                <button type="button" class="tab wb-tab" data-target="tab-metadata">
+                <button type="button" onclick="switchWorkbenchTab('tab-metadata', this)" id="tab-btn-metadata"
+                        class="tab wb-tab font-semibold py-2.5 transition-all cursor-pointer text-base-content/70 hover:text-base-content" data-target="tab-metadata">
                     <i data-lucide="check-circle" class="w-3.5 h-3.5 mr-1.5"></i> Schema & Metadata
                 </button>
             </div>
 
             <!-- Tab Panels Content Area -->
-            <div class="p-5 flex-1 overflow-y-auto max-h-[70vh] bg-base-100">
+            <div class="p-5 sm:p-6 flex-1 overflow-y-auto max-h-[75vh] bg-base-100">
                 <!-- 1. Formatted HTML Preview -->
-                <div id="tab-rendered" class="wb-panel prose max-w-none text-base-content leading-relaxed">
-                    <div id="article-rendered-content" class="text-base-content/60 text-sm italic py-12 text-center">
-                        <i data-lucide="pen-line" class="w-10 h-10 mx-auto mb-3 opacity-30"></i>
-                        Generated article content with structured headings, key takeaways, comparison tables, and FAQ schema will render here.
+                <div id="tab-rendered" class="wb-panel">
+                    <!-- Empty State Placeholder (Shown before article generation) -->
+                    <div id="article-empty-state" class="text-base-content/60 text-sm py-16 text-center flex flex-col items-center justify-center">
+                        <div class="w-14 h-14 rounded-2xl bg-base-200 border border-base-300 flex items-center justify-center text-primary/40 mb-3 shadow-inner">
+                            <i data-lucide="pen-line" class="w-7 h-7"></i>
+                        </div>
+                        <p class="font-semibold text-base-content/80 text-sm mb-1">Ready for Article Generation</p>
+                        <p class="text-xs text-base-content/50 max-w-sm">Generated article content with structured headings, key takeaways, comparison tables, and FAQ schema will render here.</p>
+                    </div>
+
+                    <!-- Live Rendered Article Body (Shown when article is available) -->
+                    <div id="article-rendered-wrapper" class="hidden">
+                        <div id="article-rendered-content" class="article-preview-body text-left"></div>
                     </div>
                 </div>
 
                 <!-- 2. Raw HTML Source Code -->
                 <div id="tab-source" class="wb-panel hidden">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-mono text-base-content/60">Clean HTML Markup</span>
-                        <button type="button" onclick="copyRawHtml()" class="btn btn-xs btn-ghost border border-base-300 gap-1">
-                            <i data-lucide="copy" class="w-3 h-3"></i> Copy HTML
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-base-300">
+                        <div class="flex items-center gap-2">
+                            <span class="badge badge-sm badge-outline badge-primary font-mono font-semibold">HTML5 Source</span>
+                            <span class="text-xs text-base-content/50 font-mono" id="raw-html-size"></span>
+                        </div>
+                        <button type="button" onclick="copyRawHtml()" class="btn btn-xs btn-outline border-base-300 hover:border-primary gap-1.5 font-semibold">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy HTML
                         </button>
                     </div>
-                    <pre class="bg-base-200/80 p-4 rounded-xl text-xs font-mono overflow-x-auto text-base-content max-h-96"><code id="article-raw-html"></code></pre>
+                    <pre class="bg-base-200/90 border border-base-300 p-4 rounded-xl text-xs font-mono overflow-x-auto text-base-content max-h-[62vh] leading-relaxed whitespace-pre-wrap"><code id="article-raw-html"></code></pre>
                 </div>
 
                 <!-- 3. Schema & Metadata -->
                 <div id="tab-metadata" class="wb-panel hidden space-y-4">
-                    <div class="bg-base-200/50 p-4 rounded-xl border border-base-300">
-                        <h4 class="text-xs font-bold text-base-content uppercase tracking-wider mb-2">Meta Tags</h4>
-                        <div class="space-y-1.5 text-xs font-mono">
-                            <div><strong class="text-primary">Meta Title:</strong> <span id="meta-title-display" class="text-base-content"></span></div>
-                            <div><strong class="text-primary">Meta Description:</strong> <span id="meta-desc-display" class="text-base-content"></span></div>
-                            <div><strong class="text-primary">Slug:</strong> <span id="meta-slug-display" class="text-base-content"></span></div>
+                    <div class="bg-base-200/50 p-4 rounded-xl border border-base-300 shadow-xs">
+                        <div class="flex items-center gap-2 mb-3 pb-2 border-b border-base-300">
+                            <i data-lucide="tag" class="w-4 h-4 text-primary"></i>
+                            <h4 class="text-xs font-bold text-base-content uppercase tracking-wider">SEO Meta Tags</h4>
+                        </div>
+                        <div class="space-y-3 text-xs">
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3">
+                                <span class="text-primary font-semibold w-28 shrink-0">Meta Title:</span>
+                                <span id="meta-title-display" class="text-base-content font-medium flex-1 break-words"></span>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3">
+                                <span class="text-primary font-semibold w-28 shrink-0">Meta Description:</span>
+                                <span id="meta-desc-display" class="text-base-content/80 flex-1 break-words leading-relaxed"></span>
+                            </div>
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3">
+                                <span class="text-primary font-semibold w-28 shrink-0">URL Slug:</span>
+                                <span id="meta-slug-display" class="text-base-content font-mono bg-base-300/60 px-2 py-0.5 rounded text-[11px] border border-base-300"></span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="bg-base-200/50 p-4 rounded-xl border border-base-300">
-                        <div class="flex items-center justify-between mb-2">
-                            <h4 class="text-xs font-bold text-base-content uppercase tracking-wider">JSON-LD Schema Markup</h4>
-                            <button type="button" onclick="copySchemaJson()" class="btn btn-xs btn-ghost border border-base-300 gap-1">
-                                <i data-lucide="copy" class="w-3 h-3"></i> Copy Schema
+                    <div class="bg-base-200/50 p-4 rounded-xl border border-base-300 shadow-xs">
+                        <div class="flex items-center justify-between mb-3 pb-2 border-b border-base-300">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="code" class="w-4 h-4 text-emerald-400"></i>
+                                <h4 class="text-xs font-bold text-base-content uppercase tracking-wider">JSON-LD Schema Markup</h4>
+                            </div>
+                            <button type="button" onclick="copySchemaJson()" class="btn btn-xs btn-outline border-base-300 hover:border-primary gap-1.5 font-semibold">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Schema
                             </button>
                         </div>
-                        <pre class="bg-base-300/50 p-3 rounded-lg text-xs font-mono overflow-x-auto text-base-content"><code id="article-schema-json"></code></pre>
+                        <pre class="bg-base-300/50 border border-base-300 p-4 rounded-xl text-xs font-mono overflow-x-auto text-emerald-400 max-h-80 leading-relaxed"><code id="article-schema-json"></code></pre>
                     </div>
                 </div>
             </div>
@@ -400,11 +602,32 @@
     let activePromptTab = 'tab-p-master';
 
     // Tabs Switcher for Workbench
-    $(document).on('click', '.wb-tab', function() {
-        $('.wb-tab').removeClass('tab-active');
-        $(this).addClass('tab-active');
+    window.switchWorkbenchTab = function(targetId, tabElem) {
+        $('.wb-tab')
+            .removeClass('tab-active border-b-2 border-primary text-primary font-bold')
+            .addClass('text-base-content/70');
+
+        if (tabElem) {
+            $(tabElem)
+                .removeClass('text-base-content/70')
+                .addClass('tab-active border-b-2 border-primary text-primary font-bold');
+        } else {
+            $(`.wb-tab[data-target="${targetId}"]`)
+                .removeClass('text-base-content/70')
+                .addClass('tab-active border-b-2 border-primary text-primary font-bold');
+        }
+
         $('.wb-panel').addClass('hidden');
-        $('#' + $(this).data('target')).removeClass('hidden');
+        $('#' + targetId).removeClass('hidden');
+
+        if (window.refreshIcons) window.refreshIcons();
+    };
+
+    $(document).on('click', '.wb-tab', function() {
+        const target = $(this).attr('data-target') || $(this).data('target');
+        if (target) {
+            window.switchWorkbenchTab(target, this);
+        }
     });
 
     // Tabs Switcher for Prompt Inspector
@@ -579,15 +802,41 @@
     }
 
     function copyRawHtml() {
-        const code = document.getElementById('article-raw-html').innerText;
-        navigator.clipboard.writeText(code);
-        showToast('HTML code copied!', 'success');
+        const code = document.getElementById('article-raw-html').innerText || '';
+        if (!code.trim()) {
+            showToast('No HTML code to copy.', 'warning');
+            return;
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(code).then(() => showToast('HTML code copied!', 'success'));
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = code;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('HTML code copied!', 'success');
+        }
     }
 
     function copySchemaJson() {
-        const code = document.getElementById('article-schema-json').innerText;
-        navigator.clipboard.writeText(code);
-        showToast('JSON-LD Schema copied!', 'success');
+        const code = document.getElementById('article-schema-json').innerText || '';
+        if (!code.trim() || code === '{}') {
+            showToast('No Schema JSON to copy.', 'warning');
+            return;
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(code).then(() => showToast('JSON-LD Schema copied!', 'success'));
+        } else {
+            const ta = document.createElement('textarea');
+            ta.value = code;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('JSON-LD Schema copied!', 'success');
+        }
     }
 
     function getFormData() {
@@ -714,8 +963,14 @@
 
         // 2. Rendered Content & Raw HTML
         const html = target.html_content || target.markdown_content || '';
+        $('#article-empty-state').addClass('hidden');
+        $('#article-rendered-wrapper').removeClass('hidden');
         $('#article-rendered-content').html(html);
         $('#article-raw-html').text(html);
+        if (document.getElementById('raw-html-size')) {
+            const bytes = new Blob([html]).size;
+            $('#raw-html-size').text((bytes / 1024).toFixed(1) + ' KB');
+        }
 
         // 3. Metadata & SEO Schema
         $('#meta-title-display').text(target.meta_title || target.title || 'N/A');
