@@ -45,7 +45,7 @@
                 </a>
             </li>
             <li>
-                <a href="{{ route('ai-presets.index') }}" class="{{ request()->routeIs('ai-presets.*') ? 'active bg-primary/15 text-primary font-bold shadow-xs border-l-2 border-primary' : 'text-base-content/75 hover:bg-base-200/80 hover:text-base-content' }} flex items-center gap-2.5 py-2 rounded-lg transition-all">
+                <a href="{{ url('/ai-presets') }}" class="{{ request()->is('ai-presets*') ? 'active bg-primary/15 text-primary font-bold shadow-xs border-l-2 border-primary' : 'text-base-content/75 hover:bg-base-200/80 hover:text-base-content' }} flex items-center gap-2.5 py-2 rounded-lg transition-all">
                     <i data-lucide="sliders" class="w-4 h-4 text-fuchsia-500"></i>
                     <span>AI Presets</span>
                 </a>

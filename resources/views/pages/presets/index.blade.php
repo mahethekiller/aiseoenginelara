@@ -92,7 +92,7 @@
 
     <!-- Filter & Search Toolbar -->
     <div class="card bg-base-100 border border-base-300 shadow-xs rounded-2xl p-4">
-        <form method="GET" action="{{ route('ai-presets.index') }}" class="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <form method="GET" action="{{ url('/ai-presets') }}" class="flex flex-col sm:flex-row items-center justify-between gap-3">
             <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
                 <!-- Search Input -->
                 <div class="relative w-full sm:w-72">
@@ -115,7 +115,7 @@
                     <i data-lucide="filter" class="w-3.5 h-3.5"></i> Filter
                 </button>
                 @if(request()->hasAny(['search', 'provider']))
-                <a href="{{ route('ai-presets.index') }}" class="btn btn-ghost btn-sm px-3 text-xs">
+                <a href="{{ url('/ai-presets') }}" class="btn btn-ghost btn-sm px-3 text-xs">
                     Reset
                 </a>
                 @endif
@@ -242,7 +242,7 @@
         </div>
 
         <!-- Form Body -->
-        <form id="preset_form" method="POST" action="{{ route('ai-presets.store') }}" class="p-6 space-y-4">
+        <form id="preset_form" method="POST" action="{{ url('/ai-presets') }}" class="p-6 space-y-4">
             @csrf
             <input type="hidden" name="_method" id="form_method" value="POST">
 
@@ -409,7 +409,7 @@
     function openCreatePresetModal() {
         document.getElementById('modal_title').textContent = 'Create AI Preset';
         document.getElementById('form_method').value = 'POST';
-        document.getElementById('preset_form').action = "{{ route('ai-presets.store') }}";
+        document.getElementById('preset_form').action = "{{ url('/ai-presets') }}";
         document.getElementById('modal_name').value = '';
         document.getElementById('modal_provider').value = 'gemini';
         document.getElementById('modal_temperature').value = 0.7;
