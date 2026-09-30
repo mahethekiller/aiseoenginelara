@@ -142,12 +142,6 @@ The key takeaways should provide quick value without simply repeating the introd
 - **Avoid Repetition:** Every section must introduce new value. Do not repeat the same facts, advice, keyword phrasing, examples, or arguments across the introduction, body, conclusion, CTA, and FAQs.
 - **Natural SEO Writing:** Never compromise readability or accuracy simply to place a keyword.
 - **Third-Person Usage:** Use third-person language only when required for factual explanation, brand references, subject-specific descriptions, or clarity.
-- **Banned Words Filter:**
-  ❌ DO NOT use 'can' -> Replace with 'does', 'enables', 'is capable of', or direct action verbs.
-  ❌ DO NOT use 'hence', 'thus', 'as per', 'etc', 'via', 'therefore', 'moreover'.
-  ❌ DO NOT use 'then' -> Replace with a comma and move on.
-  ❌ DO NOT start sentences with 'however' or 'but'.
-  ❌ DO NOT use 'have to' or 'must' -> Replace with 'need to' or action verbs.
 
 ## Content Depth & Usefulness
 

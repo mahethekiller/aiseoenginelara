@@ -191,13 +191,7 @@ class PromptBuilder
             ."- **Avoid Filler:** Remove unnecessary introductions, transitional padding, clichés, broad statements, and repetitive explanations.\n"
             ."- **Avoid Repetition:** Every section must introduce new value. Do not repeat the same facts, advice, keyword phrasing, examples, or arguments across the introduction, body, conclusion, CTA, and FAQs.\n"
             ."- **Natural SEO Writing:** Never compromise readability or accuracy simply to place a keyword.\n"
-            ."- **Third-Person Usage:** Use third-person language only when required for factual explanation, brand references, subject-specific descriptions, or clarity.\n"
-            ."- **Banned Words Filter:**\n"
-            ."  ❌ DO NOT use 'can' -> Replace with 'does', 'enables', 'is capable of', or direct action verbs.\n"
-            ."  ❌ DO NOT use 'hence', 'thus', 'as per', 'etc', 'via', 'therefore', 'moreover'.\n"
-            ."  ❌ DO NOT use 'then' -> Replace with a comma and move on.\n"
-            ."  ❌ DO NOT start sentences with 'however' or 'but'.\n"
-            ."  ❌ DO NOT use 'have to' or 'must' -> Replace with 'need to' or action verbs.\n\n";
+            ."- **Third-Person Usage:** Use third-person language only when required for factual explanation, brand references, subject-specific descriptions, or clarity.\n\n";
 
         // Section 10: Content Depth & Usefulness
         $systemPrompt .= "## Content Depth & Usefulness\n\n"
@@ -416,11 +410,6 @@ class PromptBuilder
             ."- Target Word Count: Write approximately {$section['target_words']} words for this section.\n"
             .$this->formatPovInstruction($params['pov'] ?? null)."\n"
             ."- Voice: Active voice only, simple present tense.\n"
-            ."- Banned Words Filter:\n"
-            ."  ❌ DO NOT use 'can' -> Replace with 'does', 'enables', 'is capable of', or direct action verbs.\n"
-            ."  ❌ DO NOT use 'hence', 'thus', 'as per', 'etc', 'via', 'therefore', 'moreover'.\n"
-            ."  ❌ DO NOT use 'then' -> Replace with a comma and move on.\n"
-            ."  ❌ DO NOT start sentences with 'however' or 'but'.\n"
             ."- Bold lead-ins for bullet points (e.g., <li><strong>Title:</strong> Description...</li>).\n\n"
             ."### Styling & Markup Rules:\n"
             ."- Output ONLY clean semantic HTML body tags (<h2>, <h3>, <p>, <ul>, <li>, <table>, <strong>).\n"
