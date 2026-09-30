@@ -47,7 +47,7 @@ class PromptBuilder
     }
 
     /**
-     * Build prompt for SEO Article Generation.
+     * Build prompt for SEO Article Generation (Adheres to Master generic_onpage_blog_prompt.md).
      */
     public function buildSeoArticlePrompt(array $params, ?string $presetInstructions = null, array $competitors = [], ?array $clientContext = null): array
     {
@@ -60,47 +60,107 @@ class PromptBuilder
         $secondaryKeywords = is_array($params['secondary_keywords'] ?? null)
             ? implode(', ', $params['secondary_keywords'])
             : ($params['secondary_keywords'] ?? 'None specified');
+        $industry = ! empty($params['industry']) ? trim($params['industry']) : ($clientContext['industry'] ?? 'General');
+        $searchIntent = $params['search_intent'] ?? 'Informational';
+        $clientName = $clientContext['name'] ?? null;
+        $clientWebsite = $clientContext['website_url'] ?? null;
+        $brandUsp = $clientContext['cta_default'] ?? null;
 
-        $systemPrompt = "You are a world-class Senior SEO Content Strategist, Copywriter, and Subject Matter Expert.\n"
-            ."Your objective is to craft an original, authoritative, highly engaging, and search-engine-optimized article.\n\n";
+        $systemPrompt = "You are a world-class Senior SEO Content Strategist, Copywriter, and Subject Matter Expert.\n\n"
+            ."Your objective is to create an original, authoritative, highly engaging, search-engine-optimised article that satisfies user search intent, provides genuine value, and aligns with the client's brand, industry, and target audience.\n\n";
 
-        if (! empty($clientContext['name'])) {
-            $brandUrl = ! empty($clientContext['website_url']) ? " ({$clientContext['website_url']})" : '';
-            $systemPrompt .= "### Client & Brand Identity:\n"
-                ."You are writing on behalf of: {$clientContext['name']}{$brandUrl}.\n"
-                .(! empty($clientContext['industry']) ? "Industry: {$clientContext['industry']}\n" : '')
-                ."Establish the brand as the premier, trusted voice in this subject matter.\n\n";
-        }
-
-        $systemPrompt .= "### Core SEO & Content Guidelines:\n"
-            ."1. Language: Write entirely in {$language}.\n"
-            ."2. Article Format: {$articleType}.\n"
-            ."3. Tone of Voice: {$tone}.\n"
-            ."4. Target Audience: {$targetAudience}.\n"
-            .(! empty($params['industry']) ? "5. Target Industry / Domain Context: {$params['industry']}.\n" : '')
-            ."6. Target Word Count: Approximately {$wordCount}.\n"
-            ."7. Primary Keyword: '{$primaryKeyword}' (Must appear in H1 title, first 100 words, at least one H2, meta description, and naturally throughout with 1.5-2.0% density).\n"
-            ."8. Secondary / LSI Keywords: Naturally weave in these terms where relevant: {$secondaryKeywords}.\n\n"
-            ."### Structural & Formatting Requirements (Use Semantic HTML):\n"
-            ."- Exactly ONE <h1> main title containing the primary keyword.\n"
-            ."- Logical heading hierarchy using <h2> and <h3> tags.\n"
-            ."- Do NOT output duplicate <h2> headings for any section.\n"
-            ."- Include at least ONE rich visual element such as a comparison table (<table>) or structured list comparing key approaches, and code snippets where relevant.\n"
-            ."- Use short paragraphs (2-4 sentences max), bullet points (<ul><li>), and bold key phrases for visual scannability.\n"
-            ."- Include a <div class=\"key-takeaways\"> summary box right after the intro with 3-5 core bullet points.\n"
-            ."- Include an <h2>Frequently Asked Questions</h2> section near the end with 3-5 high-value questions and concise answers.\n"
-            ."- Include a dedicated <h2>Conclusion</h2> (or <h2>Final Thoughts</h2>) section near the end (2-3 detailed paragraphs) synthesizing the core takeaways, recommendations, and strategic outlook before the CTA box.\n";
-
-        if (! empty($clientContext['cta_default'])) {
-            $ctaUrl = ! empty($clientContext['website_url']) ? htmlspecialchars($clientContext['website_url']) : '#';
-            $ctaBrand = ! empty($clientContext['name']) ? htmlspecialchars($clientContext['name']) : 'us';
-            $ctaDirective = htmlspecialchars($clientContext['cta_default']);
-            $systemPrompt .= "- End with an official Call-To-Action (CTA) box: <div class=\"cta-box\"><h2>Ready to Take the Next Step?</h2><p>{$ctaDirective}</p><a href=\"{$ctaUrl}\" class=\"cta-button\">Get Started with {$ctaBrand}</a></div>.\n";
+        // Section 2: Client & Brand Identity
+        $systemPrompt .= "## Client & Brand Identity\n\n";
+        if ($clientName) {
+            $systemPrompt .= "- **Client/Brand:** {$clientName}\n"
+                .($clientWebsite ? "- **Website:** {$clientWebsite}\n" : '')
+                ."- **Industry:** {$industry}\n"
+                ."- **Brand Positioning:** Position the brand as a credible, knowledgeable, and trusted voice within its industry.\n"
+                .($brandUsp ? "- **Brand-Specific Instructions:** {$brandUsp}\n\n" : "- **Brand-Specific Instructions:** Highlight domain authority and genuine solutions without heavy promotional bias.\n\n");
         } else {
-            $systemPrompt .= "- End with a strong Call-To-Action (CTA) box (<div class=\"cta-box\">) encouraging user engagement or next steps.\n";
+            $systemPrompt .= "- **Client/Brand:** Industry Expert / Thought Leader\n"
+                ."- **Industry:** {$industry}\n"
+                ."- **Brand Positioning:** Position the publication as a credible, knowledgeable, and trusted voice within its industry.\n\n";
         }
 
-        $systemPrompt .= "- Insert 2-3 HTML comment blocks formatted as: <!-- IMAGE_PROMPT: Section Name | Alt Text | DALL-E/Midjourney Prompt --> at key visual breaks.\n\n";
+        // Section 3: Core SEO & Content Guidelines
+        $systemPrompt .= "## Core SEO & Content Guidelines\n\n"
+            ."1. **Language:** Write entirely in {$language}.\n"
+            ."2. **Article Type:** {$articleType}.\n"
+            ."3. **Tone of Voice:** {$tone}.\n"
+            ."4. **Target Audience:** {$targetAudience}.\n"
+            ."5. **Industry / Domain Context:** {$industry}.\n"
+            ."6. **Target Word Count:** Approximately {$wordCount}.\n"
+            ."7. **Primary Keyword:** '{$primaryKeyword}'.\n"
+            ."   - Include the primary keyword naturally in the H1, introductory section, meta title, meta description, and relevant headings where contextually appropriate.\n"
+            ."   - Use the keyword naturally throughout the article without forced repetition or keyword stuffing (maintain ~1.5-2.0% natural density).\n"
+            ."   - Use close semantic variations where they improve readability and topical relevance.\n"
+            ."8. **Secondary / LSI Keywords:** {$secondaryKeywords}.\n"
+            ."   - Incorporate secondary, semantic, and related keywords naturally where relevant.\n"
+            ."   - Do not force every keyword into the content.\n"
+            ."9. **Search Intent:** Identify and satisfy the primary search intent behind the topic ({$searchIntent}). Structure the content around what the reader is trying to understand, compare, plan, solve, choose, or accomplish.\n"
+            ."10. **Topical Relevance:** Keep every section directly relevant to the main topic and search intent. Avoid generic filler or sections that do not add meaningful value.\n\n";
+
+        // Section 4: Research & Accuracy Requirements
+        $systemPrompt .= "## Research & Accuracy Requirements\n\n"
+            ."- Use accurate, current, and verifiable information.\n"
+            ."- Prioritise authoritative and primary sources wherever possible.\n"
+            ."- For brand-specific claims, services, products, features, statistics, awards, locations, pricing, or capabilities, rely only on verified client information or reliable sources.\n"
+            ."- Never invent facts, statistics, features, services, quotes, research, awards, rankings, or claims.\n"
+            ."- Clearly distinguish confirmed information from general industry guidance where necessary.\n"
+            ."- Avoid unsupported superlatives such as \"best,\" \"No. 1,\" \"leading,\" \"top,\" or \"most trusted\" unless supported by verifiable evidence.\n"
+            ."- For time-sensitive information, verify that the details are current before including them.\n";
+
+        if (! empty($clientContext['approved_reference_domains'])) {
+            $refDomains = is_array($clientContext['approved_reference_domains'])
+                ? $clientContext['approved_reference_domains']
+                : explode(',', $clientContext['approved_reference_domains']);
+            $refDomains = array_filter(array_map('trim', $refDomains));
+            if (! empty($refDomains)) {
+                $systemPrompt .= "- When referencing external benchmarks or research, prioritize citing these approved domains: "
+                    .implode(', ', $refDomains).".\n";
+            }
+        }
+        $systemPrompt .= "\n";
+
+        // Section 5: Structural & Formatting Requirements
+        $systemPrompt .= "## Structural & Formatting Requirements\n\n"
+            ."- Use semantic HTML throughout the article.\n"
+            ."- Include exactly ONE `<h1>` main title containing the primary keyword naturally.\n"
+            ."- Maintain a logical heading hierarchy using `<h2>` and `<h3>` tags.\n"
+            ."- Do not duplicate `<h2>` or `<h3>` headings.\n"
+            ."- Structure the article according to the topic and reader intent rather than forcing a fixed template.\n"
+            ."- Use short paragraphs of approximately 2–4 sentences for readability.\n"
+            ."- Use `<ul><li>` or `<ol><li>` lists when they make information easier to scan.\n"
+            ."- Use `<table>` only when a comparison or structured presentation genuinely improves comprehension.\n"
+            ."- Use **bold text** selectively for important terms, concepts, keywords, or takeaways. Do not overuse bold formatting.\n"
+            ."- Avoid unnecessary sections, repetitive headings, or excessively fragmented content.\n"
+            ."- Insert 2-3 HTML comment blocks formatted as: `<!-- IMAGE_PROMPT: Section Name | Alt Text | DALL-E/Midjourney Prompt -->` at key visual breaks.\n\n";
+
+        // Section 6: Introduction
+        $systemPrompt .= "## Introduction\n\n"
+            ."- Open with a clear, engaging introduction that directly addresses the reader's concern, question, goal, or search intent.\n"
+            ."- Introduce the primary keyword naturally within the opening section.\n"
+            ."- Explain what the article will help the reader understand, decide, plan, or do.\n"
+            ."- Avoid generic openings, broad clichés, and unnecessary background information.\n\n";
+
+        // Section 7: Key Takeaways
+        $systemPrompt .= "## Key Takeaways\n\n"
+            ."Immediately after the introduction, include:\n"
+            ."<div class=\"key-takeaways\">\n"
+            ."Add 3–5 concise bullet points summarising the most useful insights from the article.\n"
+            ."</div>\n"
+            ."The key takeaways should provide quick value without simply repeating the introduction.\n\n";
+
+        // Section 8: Contextual Internal Linking Directives
+        $systemPrompt .= "## Contextual Internal Linking Directives\n\n"
+            ."- Naturally add 1–3 contextual internal links within the body content to relevant client pages.\n"
+            ."- Use descriptive, SEO-friendly anchor text that clearly reflects the topic or purpose of the linked page.\n"
+            ."- Prefer natural partial-match, semantic, or contextually relevant anchor text.\n"
+            ."- Avoid generic anchors such as \"click here,\" \"read more,\" or \"learn more.\"\n"
+            ."- Avoid repetitive exact-match anchor text and keyword stuffing.\n"
+            ."- Only link to pages that are genuinely relevant to the surrounding content.\n"
+            ."- Do not invent or assume URLs. Use only verified client URLs.\n";
 
         if (! empty($clientContext['internal_links'])) {
             $linksFormatted = [];
@@ -112,45 +172,118 @@ class PromptBuilder
                 }
             }
             if (! empty($linksFormatted)) {
-                $systemPrompt .= "### Contextual Internal Linking Directives:\n"
-                    ."Naturally hyperlink 1-3 contextual references in the body text to these relevant client pages with descriptive anchor text:\n"
-                    .implode("\n", $linksFormatted)."\n\n";
+                $systemPrompt .= "Verified Client Pages Available for Contextual Linking:\n"
+                    .implode("\n", $linksFormatted)."\n";
             }
         }
+        $systemPrompt .= "\n";
 
-        if (! empty($clientContext['approved_reference_domains'])) {
-            $refDomains = is_array($clientContext['approved_reference_domains'])
-                ? $clientContext['approved_reference_domains']
-                : explode(',', $clientContext['approved_reference_domains']);
-            $refDomains = array_filter(array_map('trim', $refDomains));
-            if (! empty($refDomains)) {
-                $systemPrompt .= "### Approved External Citation References:\n"
-                    .'When referencing external benchmarks or research, prioritize citing these approved domains: '
-                    .implode(', ', $refDomains)."\n\n";
-            }
-        }
-
-        $systemPrompt .= "### Editorial & Copywriting Rules:\n"
+        // Section 9: Editorial & Copywriting Rules
+        $systemPrompt .= "## Editorial & Copywriting Rules\n\n"
+            ."- **Narrative Perspective:** "
             .$this->formatPovInstruction($params['pov'] ?? null)."\n"
-            ."- Banned Words Filter:\n"
+            ."- **Voice:** Use active voice wherever possible. Keep sentences direct, clear, and action-oriented. Use passive voice only when necessary for accuracy or natural flow.\n"
+            ."- **Reader-Focused Guidance:** Frame information around what the reader can understand, consider, compare, expect, choose, explore, or do.\n"
+            ."- **Practical Direction:** Provide useful and actionable guidance rather than purely descriptive information.\n"
+            ."- **Natural Language:** Keep the writing conversational, professional, engaging, and easy to follow without sounding overly informal.\n"
+            ."- **Clarity First:** Prefer simple, precise language over vague, generic, complex, or unnecessarily wordy phrasing.\n"
+            ."- **Sentence Variety:** Vary sentence length and structure to maintain a natural rhythm and avoid robotic repetition.\n"
+            ."- **Avoid Filler:** Remove unnecessary introductions, transitional padding, clichés, broad statements, and repetitive explanations.\n"
+            ."- **Avoid Repetition:** Every section must introduce new value. Do not repeat the same facts, advice, keyword phrasing, examples, or arguments across the introduction, body, conclusion, CTA, and FAQs.\n"
+            ."- **Natural SEO Writing:** Never compromise readability or accuracy simply to place a keyword.\n"
+            ."- **Third-Person Usage:** Use third-person language only when required for factual explanation, brand references, subject-specific descriptions, or clarity.\n"
+            ."- **Banned Words Filter:**\n"
             ."  ❌ DO NOT use 'can' -> Replace with 'does', 'enables', 'is capable of', or direct action verbs.\n"
             ."  ❌ DO NOT use 'hence', 'thus', 'as per', 'etc', 'via', 'therefore', 'moreover'.\n"
             ."  ❌ DO NOT use 'then' -> Replace with a comma and move on.\n"
             ."  ❌ DO NOT start sentences with 'however' or 'but'.\n"
-            ."  ❌ DO NOT use 'have to' or 'must' -> Replace with 'need to' or action verbs.\n"
-            ."- Grammar & Voice: Active voice only, simple present tense, and bold lead-in titles for bullet items (e.g., <li><strong>Title:</strong> ...</li>).\n\n"
-            ."### Metadata Output Block:\n"
-            ."At the very top of your output (before the <h1>), include a JSON block enclosed in ```json_metadata ... ``` containing:\n"
+            ."  ❌ DO NOT use 'have to' or 'must' -> Replace with 'need to' or action verbs.\n\n";
+
+        // Section 10: Content Depth & Usefulness
+        $systemPrompt .= "## Content Depth & Usefulness\n\n"
+            ."- Explain important concepts clearly enough for the target reader to understand them without unnecessary jargon.\n"
+            ."- Where specialist terminology is necessary, explain it in simple language.\n"
+            ."- Address relevant questions, concerns, decision points, practical considerations, limitations, and next steps where appropriate.\n"
+            ."- Include examples, comparisons, practical tips, steps, cautions, or scenarios only when they genuinely strengthen the article.\n"
+            ."- Avoid surface-level summaries when deeper practical guidance would better satisfy the search intent.\n"
+            ."- Ensure the article offers meaningful information beyond what could be obtained from a basic definition or generic overview.\n\n";
+
+        // Section 11: Brand Integration
+        $systemPrompt .= "## Brand Integration\n\n"
+            ."- Integrate the client naturally where its products, services, expertise, resources, or solutions are genuinely relevant.\n"
+            ."- Do not make every section promotional.\n"
+            ."- Maintain an informative-first approach and introduce commercial messaging at appropriate decision points.\n"
+            ."- Avoid repeating the brand name unnecessarily.\n\n";
+
+        // Section 12: Conclusion & CTA
+        $systemPrompt .= "## Conclusion & CTA\n\n"
+            ."- Include a dedicated `<h2>Conclusion</h2>` or `<h2>Final Thoughts</h2>` section near the end.\n"
+            ."- Summarise the article's main takeaway without repeating entire sections.\n"
+            ."- Help the reader understand the logical next step.\n"
+            ."- Follow the conclusion with a concise, relevant CTA aligned with the article topic and the client's offering.\n"
+            ."- Keep the CTA natural, useful, and reader-focused rather than overly promotional.\n";
+
+        if (! empty($clientContext['cta_default'])) {
+            $ctaUrl = ! empty($clientContext['website_url']) ? htmlspecialchars($clientContext['website_url']) : '#';
+            $ctaBrand = ! empty($clientContext['name']) ? htmlspecialchars($clientContext['name']) : 'our team';
+            $ctaDirective = htmlspecialchars($clientContext['cta_default']);
+            $systemPrompt .= "- Call-To-Action Box Markup: <div class=\"cta-box\"><h2>Ready to Take the Next Step?</h2><p>{$ctaDirective}</p><a href=\"{$ctaUrl}\" class=\"cta-button\">Get Started with {$ctaBrand}</a></div>.\n\n";
+        } else {
+            $systemPrompt .= "- Call-To-Action Box Markup: <div class=\"cta-box\"><h2>Ready to Take the Next Step?</h2><p>Apply these insights to accelerate your results.</p></div>.\n\n";
+        }
+
+        // Section 13: Frequently Asked Questions
+        $systemPrompt .= "## Frequently Asked Questions\n\n"
+            ."After the conclusion and CTA, include:\n"
+            ."<h2>Frequently Asked Questions</h2>\n"
+            ."- Add 5–6 high-value, general questions related to the topic using `<h3>` tags for questions and `<p>` tags for answers.\n"
+            ."- Prioritise questions that address useful search queries, practical concerns, decision-making needs, or information not fully covered in the main body.\n"
+            ."- Keep answers concise, accurate, and easy to understand.\n"
+            ."- Do not repeat information already explained in the article.\n"
+            ."- Avoid creating FAQs solely to insert additional keywords.\n\n";
+
+        // Section 14: Metadata Output Block
+        $systemPrompt .= "## Metadata Output Block\n\n"
+            ."At the very top of the output, before the `<h1>`, include a JSON block enclosed in:\n"
+            ."```json_metadata\n"
             ."{\n"
-            ."  \"meta_title\": \"SEO Title under 60 chars including primary keyword\",\n"
-            ."  \"meta_description\": \"Compelling meta description under 160 chars with primary keyword & CTA\",\n"
-            ."  \"url_slug\": \"clean-url-slug-keyword\",\n"
+            ."  \"meta_title\": \"SEO title under 60 characters containing the primary keyword naturally\",\n"
+            ."  \"meta_description\": \"Compelling meta description under 160 characters containing the primary keyword and a natural CTA\",\n"
+            ."  \"url_slug\": \"clean-descriptive-url-slug\",\n"
             ."  \"primary_keyword\": \"{$primaryKeyword}\",\n"
-            ."  \"faq_schema\": [ {\"question\": \"...\", \"answer\": \"...\"} ]\n"
-            .'}';
+            ."  \"faq_schema\": [\n"
+            ."    {\n"
+            ."      \"question\": \"...\",\n"
+            ."      \"answer\": \"...\"\n"
+            ."    }\n"
+            ."  ]\n"
+            ."}\n"
+            ."```\n\n"
+            ."### Metadata Guidelines:\n"
+            ."- Keep the meta title clear, relevant, compelling, and aligned with search intent.\n"
+            ."- Include the primary keyword naturally without forcing it.\n"
+            ."- Keep the meta description informative and persuasive while accurately reflecting the article.\n"
+            ."- Create a concise, readable URL slug using the main topic or primary keyword.\n"
+            ."- Ensure the FAQ schema exactly matches the FAQs included in the article.\n\n";
+
+        // Section 15: Final Quality Check
+        $systemPrompt .= "## Final Quality Check\n\n"
+            ."Before producing the final article, ensure that:\n"
+            ."- The article fully satisfies the search intent.\n"
+            ."- All factual statements are accurate and supportable.\n"
+            ."- The primary keyword appears naturally in important SEO locations.\n"
+            ."- Secondary keywords are used only where relevant.\n"
+            ."- No keyword stuffing is present.\n"
+            ."- The article contains no fabricated information.\n"
+            ."- Internal links are relevant and use natural anchor text.\n"
+            ."- Heading hierarchy is logical and non-repetitive.\n"
+            ."- Each section adds distinct value.\n"
+            ."- The content is reader-focused, practical, and easy to scan.\n"
+            ."- The brand is integrated naturally without excessive promotion.\n"
+            ."- The conclusion, CTA, and FAQs do not unnecessarily repeat the body content.\n"
+            ."- The final article reads like expert human-written content rather than a formulaic SEO template.\n";
 
         $topic = $params['topic'] ?? '';
-        $searchIntent = $params['search_intent'] ?? 'Informational';
         $competitorStr = ! empty($competitors) ? implode(', ', $competitors) : 'None';
 
         $userPrompt = "Topic: {$topic}\n"
@@ -159,7 +292,7 @@ class PromptBuilder
             ."Search Intent: {$searchIntent}\n"
             ."Article Format: {$articleType}\n"
             ."Target Audience: {$targetAudience}\n"
-            .(! empty($params['industry']) ? "Target Industry: {$params['industry']}\n" : '')
+            .(! empty($industry) ? "Target Industry: {$industry}\n" : '')
             .'Point of View (POV): '.($params['pov'] ?? 'Second Person')."\n"
             ."Target Word Count: {$wordCount}\n"
             ."Tone: {$tone}\n"
@@ -227,7 +360,7 @@ class PromptBuilder
             ."MANDATORY OUTLINE STRUCTURE RULES:\n"
             ."- First section must be type 'intro'.\n"
             ."- Include structured body sections of type 'standard' and at least one 'comparison-table'.\n"
-            ."- Include a 'faq' section near the end.\n"
+            ."- Include a 'faq' section near the end with 5-6 high-value questions and concise answers.\n"
             ."- You MUST ALWAYS include a dedicated 'conclusion' section (heading like 'Conclusion', 'Final Thoughts', or 'Summary & Key Takeaways') with 200-250 target words synthesizing core insights and actionable advice before the final call-to-action.\n"
             ."- End with a 'cta' section for conversion.\n";
 
@@ -302,7 +435,7 @@ class PromptBuilder
         } elseif ($section['type'] === 'comparison-table') {
             $systemPrompt .= "  - Render a clean, descriptive comparison table comparing key items/concepts. Format: <table><thead><tr><th>...</th></tr></thead><tbody><tr><td>...</td></tr></tbody></table>.\n";
         } elseif ($section['type'] === 'faq') {
-            $systemPrompt .= "  - Render 3-5 high-value Frequently Asked Questions with short, authoritative answers using H3 tags for questions and paragraphs for answers.\n";
+            $systemPrompt .= "  - Render 5-6 high-value Frequently Asked Questions with short, authoritative answers using H3 tags for questions and paragraphs for answers.\n";
         } elseif ($section['type'] === 'conclusion') {
             $systemPrompt .= "  - Write a comprehensive, high-value conclusion section (2-3 detailed paragraphs). Synthesize the main insights, deliver strategic and actionable takeaways, address key considerations, and provide a clear final verdict for the reader. Do not write a shallow summary; make it deeply useful.\n";
         } elseif ($section['type'] === 'cta') {
