@@ -53,8 +53,13 @@ class PromptBuilder
     {
         $language = $params['language'] ?? 'English';
         $articleType = $params['format'] ?? 'Ultimate Guide';
-        $tone = $params['tone'] ?? ($clientContext['brand_tone'] ?? 'Professional & Authoritative');
-        $targetAudience = $params['target_audience'] ?? ($clientContext['target_audience'] ?? 'General Audience');
+        $rawTone = $params['tone'] ?? null;
+        if (empty($rawTone) || $rawTone === 'client_default') {
+            $tone = $clientContext['brand_tone'] ?? 'Professional & Authoritative';
+        } else {
+            $tone = $rawTone;
+        }
+        $targetAudience = !empty($params['target_audience']) ? $params['target_audience'] : ($clientContext['target_audience'] ?? 'General Audience');
         $wordCount = $params['word_count'] ?? 'Standard (1200-1800 words)';
         $primaryKeyword = $params['primary_keyword'] ?? '';
         $secondaryKeywords = is_array($params['secondary_keywords'] ?? null)
@@ -388,8 +393,13 @@ class PromptBuilder
     public function buildSectionPrompt(array $params, array $section, string $previousContent, ?string $presetInstructions = null, ?array $clientContext = null): array
     {
         $language = $params['language'] ?? 'English';
-        $tone = $params['tone'] ?? ($clientContext['brand_tone'] ?? 'Professional & Authoritative');
-        $targetAudience = $params['target_audience'] ?? ($clientContext['target_audience'] ?? 'General Audience');
+        $rawTone = $params['tone'] ?? null;
+        if (empty($rawTone) || $rawTone === 'client_default') {
+            $tone = $clientContext['brand_tone'] ?? 'Professional & Authoritative';
+        } else {
+            $tone = $rawTone;
+        }
+        $targetAudience = !empty($params['target_audience']) ? $params['target_audience'] : ($clientContext['target_audience'] ?? 'General Audience');
         $primaryKeyword = $params['primary_keyword'] ?? '';
         $secondaryKeywords = $params['secondary_keywords'] ?? '';
         $industry = ! empty($params['industry']) ? trim($params['industry']) : ($clientContext['industry'] ?? null);

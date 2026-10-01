@@ -258,7 +258,7 @@
                     <div>
                         <label class="label py-0.5 text-xs font-semibold text-base-content/80">Industry / Domain</label>
                         <input type="text" id="industry" name="industry"
-                               value="{{ $activeClient?->industry ?? 'Home Improvement & Architecture' }}"
+                               value="{{ $activeClient?->industry ?? '' }}"
                                placeholder="e.g. Healthcare, SaaS, Legal"
                                class="input input-bordered input-sm w-full bg-base-200/50 text-xs text-base-content" />
                     </div>
@@ -312,9 +312,17 @@
                         </select>
                     </div>
                     <div>
-                        <label class="label py-0.5 text-[11px] font-semibold text-base-content/80">Tone</label>
+                        <label class="label py-0.5 text-[11px] font-semibold text-base-content/80 flex justify-between">
+                            <span>Tone</span>
+                            <span id="client-tone-hint" class="text-[10px] text-primary truncate max-w-[110px]" title="{{ $activeClient?->brand_tone ?? '' }}">
+                                {{ $activeClient?->brand_tone ? 'Client Default' : '' }}
+                            </span>
+                        </label>
                         <select id="tone" name="tone" class="select select-bordered select-sm w-full bg-base-200/50 text-xs">
-                            <option value="Authoritative, Informative, Engaging" selected>Authoritative</option>
+                            <option value="client_default" id="opt-client-tone" {{ $activeClient && $activeClient->brand_tone ? 'selected' : '' }} {{ !$activeClient || !$activeClient->brand_tone ? 'hidden' : '' }}>
+                                Client Tone ({{ Str::limit($activeClient?->brand_tone ?? '', 20) }})
+                            </option>
+                            <option value="Authoritative, Informative, Engaging" {{ (!$activeClient || !$activeClient->brand_tone) ? 'selected' : '' }}>Authoritative</option>
                             <option value="Conversational, Friendly">Conversational</option>
                             <option value="Professional, Corporate">Corporate</option>
                             <option value="Persuasive, Commercial">Commercial</option>
@@ -668,13 +676,36 @@
     // Auto-fill Client Context on Change
     $('#client_id').on('change', function() {
         const selected = $(this).find(':selected');
+        const optClientTone = $('#opt-client-tone');
+        const clientToneHint = $('#client-tone-hint');
+
         if (selected.val() !== 'none') {
-            $('#industry').val(selected.data('industry') || $('#industry').val());
+            $('#industry').val(selected.data('industry') || '');
             $('#target_audience').val(selected.data('audience') || 'General Audience');
             $('#client-badge').text(selected.text().split('(')[0].trim());
+
+            const clientTone = selected.data('tone');
+            if (clientTone) {
+                const shortTone = clientTone.length > 20 ? clientTone.substring(0, 17) + '...' : clientTone;
+                optClientTone.text('Client Tone (' + shortTone + ')').removeAttr('hidden');
+                clientToneHint.text('Client Default').attr('title', clientTone);
+                $('#tone').val('client_default');
+            } else {
+                optClientTone.attr('hidden', 'hidden');
+                clientToneHint.text('').removeAttr('title');
+                if ($('#tone').val() === 'client_default') {
+                    $('#tone').val('Authoritative, Informative, Engaging');
+                }
+            }
         } else {
+            $('#industry').val('');
             $('#target_audience').val('General Audience');
             $('#client-badge').text('Generic Mode');
+            optClientTone.attr('hidden', 'hidden');
+            clientToneHint.text('').removeAttr('title');
+            if ($('#tone').val() === 'client_default') {
+                $('#tone').val('Authoritative, Informative, Engaging');
+            }
         }
     });
 
