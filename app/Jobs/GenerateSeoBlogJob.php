@@ -229,6 +229,7 @@ class GenerateSeoBlogJob implements ShouldQueue
             // Save Article
             $this->job->articles()->create([
                 'user_id' => $this->job->user_id,
+                'client_id' => (! empty($params['client_id']) && $params['client_id'] !== 'none') ? $params['client_id'] : null,
                 'prompt_template_id' => $tmplId,
                 'prompt_template_name' => $tmplName,
                 'title' => $title,

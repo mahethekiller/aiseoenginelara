@@ -106,6 +106,17 @@
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Search title or meta keywords..." class="input input-bordered input-sm w-full pl-9 bg-base-200/50 text-xs rounded-lg focus:outline-none focus:border-primary" />
             </div>
             <div class="w-44">
+                <select name="client_id" class="select select-bordered select-sm w-full bg-base-200/50 text-xs rounded-lg focus:outline-none focus:border-primary">
+                    <option value="">All Clients</option>
+                    <option value="none" {{ request('client_id') === 'none' ? 'selected' : '' }}>Independent (No Client)</option>
+                    @if(isset($clients))
+                        @foreach($clients as $c)
+                            <option value="{{ $c->id }}" {{ request('client_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                        @endforeach
+                    @endif
+                </select>
+            </div>
+            <div class="w-44">
                 <select name="prompt_template" class="select select-bordered select-sm w-full bg-base-200/50 text-xs rounded-lg focus:outline-none focus:border-primary">
                     <option value="">All Prompt Blueprints</option>
                     <option value="master" {{ request('prompt_template') === 'master' ? 'selected' : '' }}>Comprehensive Master</option>
@@ -114,15 +125,8 @@
                     @endforeach
                 </select>
             </div>
-            <div class="w-36">
-                <select name="min_score" class="select select-bordered select-sm w-full bg-base-200/50 text-xs rounded-lg focus:outline-none focus:border-primary">
-                    <option value="">Any SEO Score</option>
-                    <option value="80" {{ request('min_score') == '80' ? 'selected' : '' }}>80+ High Score</option>
-                    <option value="60" {{ request('min_score') == '60' ? 'selected' : '' }}>60+ Passing Score</option>
-                </select>
-            </div>
             @if($isAdmin && $users->count() > 0)
-            <div class="w-44">
+            <div class="w-40">
                 <select name="user_id" class="select select-bordered select-sm w-full bg-base-200/50 text-xs rounded-lg focus:outline-none focus:border-primary">
                     <option value="">All Authors</option>
                     @foreach($users as $u)
@@ -148,11 +152,10 @@
                     <tr>
                         <th class="w-44 text-nowrap py-3 px-3.5">Actions</th>
                         <th class="text-nowrap py-3 px-3.5">Article Title</th>
+                        <th class="text-nowrap py-3 px-3.5">Client</th>
                         <th class="text-nowrap py-3 px-3.5">Prompt Blueprint</th>
                         <th class="text-nowrap py-3 px-3.5">Created By</th>
                         <th class="text-nowrap py-3 px-3.5">Words</th>
-                        <th class="text-nowrap py-3 px-3.5">SEO Score</th>
-                        <th class="text-nowrap py-3 px-3.5">Reading Ease</th>
                         <th class="text-nowrap py-3 px-3.5">WordPress</th>
                         <th class="text-nowrap py-3 px-3.5">Created</th>
                     </tr>
@@ -186,13 +189,28 @@
                             </div>
                         </td>
                         <td class="font-bold text-base-content whitespace-nowrap py-3 px-3.5">
-                            <div class="hover:text-primary transition-colors cursor-pointer" onclick="viewArticleDetails({{ $a->id }})">{{ Str::limit($a->title, 55) }}</div>
+                            <div class="hover:text-primary transition-colors cursor-pointer" onclick="viewArticleDetails({{ $a->id }})">{{ Str::limit($a->title, 50) }}</div>
                             <div class="text-[10px] text-base-content/50 font-normal font-mono mt-0.5">{{ $a->slug }}</div>
+                        </td>
+                        <td class="whitespace-nowrap py-3 px-3.5">
+                            @if($a->client)
+                                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary font-medium text-xs">
+                                    <i data-lucide="building-2" class="w-3.5 h-3.5 shrink-0"></i>
+                                    <span class="max-w-[130px] truncate" title="{{ $a->client->name }}">{{ $a->client->name }}</span>
+                                </div>
+                            @elseif($a->client_name && $a->client_name !== 'Independent')
+                                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary font-medium text-xs">
+                                    <i data-lucide="building-2" class="w-3.5 h-3.5 shrink-0"></i>
+                                    <span class="max-w-[130px] truncate" title="{{ $a->client_name }}">{{ $a->client_name }}</span>
+                                </div>
+                            @else
+                                <span class="badge badge-sm badge-ghost text-base-content/50 font-mono">Independent</span>
+                            @endif
                         </td>
                         <td class="whitespace-nowrap py-3 px-3.5">
                             <button type="button" onclick="viewArticlePrompt({{ $a->id }})" class="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-base-200/70 hover:bg-warning/10 border border-base-300 hover:border-warning/40 transition-all text-left cursor-pointer" title="Click to inspect LLM generation prompt">
                                 <i data-lucide="sparkles" class="w-3.5 h-3.5 text-warning shrink-0 group-hover:scale-110 transition-transform"></i>
-                                <span class="font-medium text-xs text-base-content/90 group-hover:text-warning transition-colors max-w-[170px] truncate block">
+                                <span class="font-medium text-xs text-base-content/90 group-hover:text-warning transition-colors max-w-[160px] truncate block">
                                     {{ $a->prompt_template_info['name'] }}
                                 </span>
                                 @if($a->prompt_template_info['is_custom'])
@@ -208,18 +226,12 @@
                                 <div>
                                     <span class="font-semibold text-xs text-base-content block">{{ $a->user?->name ?? 'System' }}</span>
                                     @if($a->user?->email)
-                                    <span class="text-[10px] text-base-content/50 font-mono block">{{ Str::limit($a->user->email, 22) }}</span>
+                                    <span class="text-[10px] text-base-content/50 font-mono block">{{ Str::limit($a->user->email, 20) }}</span>
                                     @endif
                                 </div>
                             </div>
                         </td>
                         <td class="whitespace-nowrap font-mono text-base-content/80 py-3 px-3.5">{{ number_format($a->word_count) }}</td>
-                        <td class="whitespace-nowrap py-3 px-3.5">
-                            <span class="badge badge-sm badge-success font-mono font-bold">{{ $a->seo_score }}/100</span>
-                        </td>
-                        <td class="whitespace-nowrap py-3 px-3.5">
-                            <span class="badge badge-sm badge-info font-mono font-bold">{{ $a->flesch_reading_ease }}</span>
-                        </td>
                         <td class="whitespace-nowrap py-3 px-3.5">
                             @if(!empty($a->wordpress_post_url))
                                 <a href="{{ $a->wordpress_post_url }}" target="_blank" rel="noopener noreferrer" class="badge badge-sm badge-success badge-outline gap-1 font-mono hover:bg-success hover:text-white transition-all">
@@ -234,7 +246,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="text-center py-8 text-base-content/50">
+                        <td colspan="8" class="text-center py-8 text-base-content/50">
                             No articles found. Try adjusting your filters or create your first piece in the <a href="{{ route('blog.creator') }}" class="text-primary hover:underline">SEO Blog Creator</a>.
                         </td>
                     </tr>

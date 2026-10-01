@@ -848,6 +848,7 @@ class SeoBlogController extends Controller
 
             $job->articles()->create([
                 'user_id' => $job->user_id,
+                'client_id' => (! empty($params['client_id']) && $params['client_id'] !== 'none') ? $params['client_id'] : null,
                 'prompt_template_id' => $params['prompt_template_id'] ?? null,
                 'prompt_template_name' => $customTmpl?->archetype_name ?? 'Comprehensive Master Prompt',
                 'title' => $title,

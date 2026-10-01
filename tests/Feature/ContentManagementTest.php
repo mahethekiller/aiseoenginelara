@@ -334,6 +334,19 @@ class ContentManagementTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Prompt Blueprint');
     }
+
+    public function test_content_database_displays_client_and_filters_by_client()
+    {
+        $response = $this->actingAs($this->admin)->get('/articles');
+        $response->assertStatus(200);
+        $response->assertSee('Client');
+        $response->assertDontSee('<th>SEO Score</th>', false);
+        $response->assertDontSee('<th>Reading Ease</th>', false);
+
+        $filterResponse = $this->actingAs($this->admin)->get('/articles?client_id=none');
+        $filterResponse->assertStatus(200);
+    }
 }
+
 
 

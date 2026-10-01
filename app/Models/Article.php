@@ -12,6 +12,7 @@ class Article extends Model
 
     protected $fillable = [
         'user_id',
+        'client_id',
         'seo_generation_job_id',
         'title',
         'meta_title',
@@ -45,6 +46,29 @@ class Article extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function getClientNameAttribute(): string
+    {
+        if ($this->client) {
+            return $this->client->name;
+        }
+
+        $clientId = $this->generationJob?->parameters['client_id'] ?? null;
+        if ($clientId && $clientId !== 'none') {
+            static $clientCache = null;
+            if ($clientCache === null) {
+                $clientCache = Client::all()->keyBy('id');
+            }
+            return $clientCache[$clientId]->name ?? 'Independent';
+        }
+
+        return 'Independent';
     }
 
     public function seoGenerationJob(): BelongsTo

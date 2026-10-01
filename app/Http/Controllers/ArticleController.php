@@ -24,7 +24,7 @@ class ArticleController extends Controller
         $user = $request->user();
         $isAdmin = $user && $user->hasAnyRole(['admin', 'super_admin']);
 
-        $query = Article::with(['user', 'generationJob', 'promptTemplate'])->latest();
+        $query = Article::with(['user', 'generationJob', 'promptTemplate', 'client'])->latest();
 
         if (! $isAdmin) {
             $query->where('user_id', $user->id);
@@ -38,6 +38,15 @@ class ArticleController extends Controller
                 $q->where('title', 'like', "%{$search}%")
                     ->orWhere('meta_description', 'like', "%{$search}%");
             });
+        }
+
+        if ($request->filled('client_id')) {
+            $clientFilter = $request->input('client_id');
+            if ($clientFilter === 'none') {
+                $query->whereNull('client_id');
+            } else {
+                $query->where('client_id', $clientFilter);
+            }
         }
 
         if ($request->filled('min_score')) {
@@ -73,8 +82,9 @@ class ArticleController extends Controller
 
         $users = $isAdmin ? \App\Models\User::orderBy('name')->get(['id', 'name', 'email']) : collect();
         $promptTemplates = AiPromptTemplate::orderBy('archetype_name')->get();
+        $clients = Client::orderBy('name')->get(['id', 'name', 'industry', 'brand_tone']);
 
-        return view('pages.articles.index', compact('articles', 'metrics', 'users', 'isAdmin', 'promptTemplates'));
+        return view('pages.articles.index', compact('articles', 'metrics', 'users', 'isAdmin', 'promptTemplates', 'clients'));
     }
 
     public function show(Request $request, int|string $id)
@@ -82,7 +92,7 @@ class ArticleController extends Controller
         $user = $request->user();
         $isAdmin = $user && $user->hasAnyRole(['admin', 'super_admin']);
 
-        $article = Article::with(['user', 'generationJob'])->findOrFail($id);
+        $article = Article::with(['user', 'generationJob', 'promptTemplate', 'client'])->findOrFail($id);
 
         if (! $isAdmin && $article->user_id !== $user->id) {
             if ($request->expectsJson() || $request->ajax()) {
