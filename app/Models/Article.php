@@ -28,6 +28,8 @@ class Article extends Model
         'completion_tokens',
         'wordpress_post_id',
         'wordpress_post_url',
+        'prompt_template_id',
+        'prompt_template_name',
         'docx_path',
         'pdf_path',
     ];
@@ -53,5 +55,39 @@ class Article extends Model
     public function generationJob(): BelongsTo
     {
         return $this->belongsTo(SeoGenerationJob::class, 'seo_generation_job_id');
+    }
+
+    public function promptTemplate(): BelongsTo
+    {
+        return $this->belongsTo(AiPromptTemplate::class, 'prompt_template_id');
+    }
+
+    public function getPromptTemplateInfoAttribute(): array
+    {
+        static $templateCache = null;
+        if ($templateCache === null) {
+            $templateCache = AiPromptTemplate::all()->keyBy('id');
+        }
+
+        $params = $this->generationJob?->parameters ?? [];
+        $templateId = $this->prompt_template_id ?? ($params['prompt_template_id'] ?? null);
+        $template = $templateId ? ($templateCache[$templateId] ?? null) : null;
+
+        $name = $this->prompt_template_name
+            ?: ($template ? $template->archetype_name : 'Comprehensive Master Prompt');
+
+        $isCustom = $template ? ! $template->is_system : false;
+        $isSystem = $template ? (bool) $template->is_system : true;
+
+        return [
+            'id' => $template?->id,
+            'name' => $name,
+            'archetype_key' => $template?->archetype_key ?? 'master_seo_directive',
+            'is_custom' => $isCustom,
+            'is_system' => $isSystem,
+            'format' => $params['format'] ?? 'Ultimate Guide',
+            'tone' => $params['tone'] ?? 'Authoritative',
+            'pov' => $params['pov'] ?? 'Second Person',
+        ];
     }
 }

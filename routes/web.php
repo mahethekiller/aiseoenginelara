@@ -65,6 +65,7 @@ Route::middleware(['auth'])->group(function () {
 
     // 5. Content Database / Articles Archive
     Route::resource('articles', ArticleController::class)->only(['index', 'show', 'destroy']);
+    Route::get('/articles/{id}/prompt', [ArticleController::class, 'getPrompt'])->name('articles.prompt');
     Route::get('/articles/{id}/download/{format}', [ArticleController::class, 'download'])->name('articles.download');
     Route::post('/articles/{id}/publish-wp', [ArticleController::class, 'publishToWordPress'])->name('articles.publish.wp');
 

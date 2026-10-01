@@ -848,6 +848,8 @@ class SeoBlogController extends Controller
 
             $job->articles()->create([
                 'user_id' => $job->user_id,
+                'prompt_template_id' => $params['prompt_template_id'] ?? null,
+                'prompt_template_name' => $customTmpl?->archetype_name ?? 'Comprehensive Master Prompt',
                 'title' => $title,
                 'meta_title' => $metaTitle,
                 'meta_description' => $metaDesc,

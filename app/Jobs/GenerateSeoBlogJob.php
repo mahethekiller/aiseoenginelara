@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Exceptions\LlmApiException;
+use App\Models\AiPromptTemplate;
 use App\Models\SeoGenerationJob;
 use App\Services\AiHumanizer;
 use App\Services\ArticleFormatter;
@@ -220,9 +221,16 @@ class GenerateSeoBlogJob implements ShouldQueue
                 $schemaJson['faqSchema'] = $faqSchema;
             }
 
+            // Resolve prompt archetype name
+            $tmplId = $params['prompt_template_id'] ?? null;
+            $tmplModel = $tmplId ? AiPromptTemplate::find($tmplId) : null;
+            $tmplName = $tmplModel ? $tmplModel->archetype_name : 'Comprehensive Master Prompt';
+
             // Save Article
             $this->job->articles()->create([
                 'user_id' => $this->job->user_id,
+                'prompt_template_id' => $tmplId,
+                'prompt_template_name' => $tmplName,
                 'title' => $title,
                 'meta_title' => $metaTitle,
                 'meta_description' => $metaDesc,

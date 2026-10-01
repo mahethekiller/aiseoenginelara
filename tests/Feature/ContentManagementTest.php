@@ -282,5 +282,58 @@ class ContentManagementTest extends TestCase
         $adminDownload = $this->actingAs($this->admin)->get("/articles/{$article2->id}/download/html");
         $adminDownload->assertStatus(200);
     }
+
+    public function test_user_can_inspect_article_prompt_payload()
+    {
+        $article1 = $this->user1->articles()->first();
+
+        $response = $this->actingAs($this->user1)->getJson("/articles/{$article1->id}/prompt");
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('article_id', $article1->id)
+            ->assertJsonStructure([
+                'success',
+                'article_id',
+                'article_title',
+                'template_name',
+                'is_custom',
+                'parameters' => [
+                    'topic',
+                    'primary_keyword',
+                    'format',
+                    'tone',
+                    'pov',
+                ],
+                'master_prompt' => ['system', 'user'],
+                'outline_prompt' => ['system', 'user'],
+                'section_prompts',
+                'metadata_prompt',
+            ]);
+
+        $this->assertNotEmpty($response->json('master_prompt.system'));
+        $this->assertNotEmpty($response->json('master_prompt.user'));
+    }
+
+    public function test_non_admin_cannot_inspect_another_users_article_prompt()
+    {
+        $article2 = $this->user2->articles()->first();
+
+        // User 1 cannot inspect User 2's prompt
+        $response = $this->actingAs($this->user1)->getJson("/articles/{$article2->id}/prompt");
+        $response->assertStatus(403);
+
+        // Admin can inspect User 2's prompt
+        $adminResponse = $this->actingAs($this->admin)->getJson("/articles/{$article2->id}/prompt");
+        $adminResponse->assertStatus(200)
+            ->assertJsonPath('success', true);
+    }
+
+    public function test_content_database_filters_by_prompt_template()
+    {
+        $response = $this->actingAs($this->admin)->get('/articles?prompt_template=master');
+        $response->assertStatus(200);
+        $response->assertSee('Prompt Blueprint');
+    }
 }
+
 

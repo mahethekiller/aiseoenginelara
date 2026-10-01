@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\AiPromptTemplate;
 use App\Models\Article;
 use App\Models\Client;
 use App\Services\ArticleFormatter;
+use App\Services\PromptBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class ArticleController extends Controller
 {
@@ -21,7 +24,7 @@ class ArticleController extends Controller
         $user = $request->user();
         $isAdmin = $user && $user->hasAnyRole(['admin', 'super_admin']);
 
-        $query = Article::with(['user', 'generationJob'])->latest();
+        $query = Article::with(['user', 'generationJob', 'promptTemplate'])->latest();
 
         if (! $isAdmin) {
             $query->where('user_id', $user->id);
@@ -41,6 +44,18 @@ class ArticleController extends Controller
             $query->where('seo_score', '>=', (int) $request->input('min_score'));
         }
 
+        if ($request->filled('prompt_template')) {
+            $templateFilter = $request->input('prompt_template');
+            if ($templateFilter === 'master') {
+                $query->where(function ($q) {
+                    $q->whereNull('prompt_template_id')
+                        ->orWhere('prompt_template_name', 'Comprehensive Master Prompt');
+                });
+            } else {
+                $query->where('prompt_template_id', $templateFilter);
+            }
+        }
+
         $articles = $query->paginate(15)->withQueryString();
 
         // Telemetry metrics scoped to user permissions
@@ -57,8 +72,9 @@ class ArticleController extends Controller
         ];
 
         $users = $isAdmin ? \App\Models\User::orderBy('name')->get(['id', 'name', 'email']) : collect();
+        $promptTemplates = AiPromptTemplate::orderBy('archetype_name')->get();
 
-        return view('pages.articles.index', compact('articles', 'metrics', 'users', 'isAdmin'));
+        return view('pages.articles.index', compact('articles', 'metrics', 'users', 'isAdmin', 'promptTemplates'));
     }
 
     public function show(Request $request, int|string $id)
@@ -199,5 +215,202 @@ class ArticleController extends Controller
                 'message' => 'Failed to connect to WordPress REST API: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    public function getPrompt(Request $request, int|string $id)
+    {
+        $user = $request->user();
+        $isAdmin = $user && $user->hasAnyRole(['admin', 'super_admin']);
+
+        $article = Article::with(['user', 'generationJob', 'promptTemplate'])->findOrFail($id);
+
+        if (! $isAdmin && $article->user_id !== $user?->id) {
+            return response()->json(['message' => 'Unauthorized access to article prompt.'], 403);
+        }
+
+        $job = $article->generationJob;
+        $params = $job?->parameters ?? [];
+
+        // Fill fallback parameters if needed
+        $topic = ! empty($params['topic']) ? $params['topic'] : $article->title;
+        $primaryKeyword = ! empty($params['primary_keyword']) 
+            ? $params['primary_keyword'] 
+            : (! empty($article->keyword_density_metrics) ? array_key_first($article->keyword_density_metrics) : $article->title);
+
+        $params['topic'] = $topic;
+        $params['primary_keyword'] = $primaryKeyword;
+        if (! isset($params['format'])) {
+            $params['format'] = 'Ultimate Guide';
+        }
+        if (! isset($params['tone'])) {
+            $params['tone'] = 'Authoritative, Informative, Engaging';
+        }
+        if (! isset($params['pov'])) {
+            $params['pov'] = 'Second Person';
+        }
+        if (! isset($params['word_count'])) {
+            $params['word_count'] = 'Standard (~1500w)';
+        }
+
+        // 1. Resolve Prompt Blueprint Archetype (Template)
+        $templateId = $article->prompt_template_id ?? ($params['prompt_template_id'] ?? null);
+        $template = $templateId ? AiPromptTemplate::find($templateId) : null;
+        $templateName = $article->prompt_template_name 
+            ?: ($template?->archetype_name ?? 'Comprehensive Master Prompt');
+        $presetInstructions = '';
+
+        if ($template) {
+            $presetInstructions .= "\n\nCUSTOM PROMPT BLUEPRINT DIRECTIVES ({$template->archetype_name}):\n".$template->system_prompt_template;
+        }
+
+        // 2. Resolve Client Context if applicable
+        $clientId = $params['client_id'] ?? null;
+        $client = ($clientId && $clientId !== 'none') ? Client::find($clientId) : null;
+        $clientContext = null;
+
+        if ($client) {
+            $approvedDomains = is_array($client->approved_reference_domains)
+                ? $client->approved_reference_domains
+                : (is_string($client->approved_reference_domains) ? explode(',', $client->approved_reference_domains) : []);
+
+            $clientContext = [
+                'name' => $client->name,
+                'website_url' => $client->website_url,
+                'industry' => $client->industry,
+                'brand_tone' => $client->brand_tone,
+                'target_audience' => $client->target_audience,
+                'cta_default' => $client->cta_default,
+                'internal_links' => [],
+                'approved_reference_domains' => $approvedDomains,
+            ];
+        }
+
+        // 3. Build Full Prompts Suite via PromptBuilder
+        $promptBuilder = new PromptBuilder;
+        $competitorOutlines = ! empty($params['enable_serp_crawler']) ? [
+            'Competitor 1 Structure: Intro -> Core Framework -> Comparison Table -> FAQ -> Conclusion',
+            'Competitor 2 Structure: Overview -> Tactical Step-by-Step Guide -> Best Practices -> Case Studies',
+        ] : [];
+
+        $masterPrompt = $promptBuilder->buildSeoArticlePrompt($params, $presetInstructions, $competitorOutlines, $clientContext);
+        $outlinePrompt = $promptBuilder->buildOutlinePrompt($params, $presetInstructions, $competitorOutlines, $clientContext);
+
+        $sectionIntro = $promptBuilder->buildSectionPrompt(
+            $params,
+            [
+                'heading' => 'Introduction to '.$topic,
+                'type' => 'intro',
+                'talking_points' => ['Hook the reader with problem statement', 'Integrate focus keyword naturally', 'Roadmap of guide'],
+                'target_words' => 200,
+            ],
+            '',
+            $presetInstructions,
+            $clientContext
+        );
+
+        $sectionStandard = $promptBuilder->buildSectionPrompt(
+            $params,
+            [
+                'heading' => 'Core Strategy & Advanced Execution',
+                'type' => 'standard',
+                'talking_points' => ['Foundational principles', 'Execution step-by-step workflow', 'Common pitfalls to avoid'],
+                'target_words' => 350,
+            ],
+            '<!-- [Previously compiled intro section HTML] -->',
+            $presetInstructions,
+            $clientContext
+        );
+
+        $sectionComparison = $promptBuilder->buildSectionPrompt(
+            $params,
+            [
+                'heading' => 'Comparative Analysis: Strategy A vs Strategy B',
+                'type' => 'comparison-table',
+                'talking_points' => ['Feature-by-feature matrix', 'Pros, cons, and performance metrics'],
+                'target_words' => 250,
+            ],
+            '<!-- [Previously compiled body sections HTML] -->',
+            $presetInstructions,
+            $clientContext
+        );
+
+        $sectionFaq = $promptBuilder->buildSectionPrompt(
+            $params,
+            [
+                'heading' => 'Frequently Asked Questions',
+                'type' => 'faq',
+                'talking_points' => ['What are the core benefits?', 'How long does implementation take?', 'What are common mistakes?'],
+                'target_words' => 200,
+            ],
+            '<!-- [Previously compiled body sections HTML] -->',
+            $presetInstructions,
+            $clientContext
+        );
+
+        $sectionConclusion = $promptBuilder->buildSectionPrompt(
+            $params,
+            [
+                'heading' => 'Conclusion & Final Recommendations',
+                'type' => 'conclusion',
+                'talking_points' => ['Core synthesis', 'Strategic takeaways and final advice'],
+                'target_words' => 250,
+            ],
+            '<!-- [Previously compiled body sections HTML] -->',
+            $presetInstructions,
+            $clientContext
+        );
+
+        $sectionCta = $promptBuilder->buildSectionPrompt(
+            $params,
+            [
+                'heading' => 'Next Steps',
+                'type' => 'cta',
+                'talking_points' => ['Action steps and call to action'],
+                'target_words' => 100,
+            ],
+            '<!-- [Previously compiled body sections HTML] -->',
+            $presetInstructions,
+            $clientContext
+        );
+
+        $metadataPrompt = $promptBuilder->buildMetadataPrompt($topic, Str::limit($article->html_content, 1000));
+
+        return response()->json([
+            'success' => true,
+            'article_id' => $article->id,
+            'article_title' => $article->title,
+            'template_name' => $templateName,
+            'is_custom' => $template ? ! $template->is_system : false,
+            'template_archetype_key' => $template?->archetype_key ?? 'master_seo_directive',
+            'custom_prompt_directives' => $template?->system_prompt_template,
+            'parameters' => [
+                'topic' => $topic,
+                'primary_keyword' => $primaryKeyword,
+                'secondary_keywords' => $params['secondary_keywords'] ?? 'None',
+                'format' => $params['format'] ?? 'Ultimate Guide',
+                'tone' => $params['tone'] ?? 'Authoritative',
+                'pov' => $params['pov'] ?? 'Second Person',
+                'word_count' => $params['word_count'] ?? 'Standard',
+                'industry' => $params['industry'] ?? ($client?->industry ?? 'General'),
+                'target_audience' => $params['target_audience'] ?? ($client?->target_audience ?? 'General Audience'),
+                'client_name' => $client?->name ?? 'Independent (No Client Profile)',
+                'humanizer_active' => ! empty($params['humanizer_active']),
+                'serp_crawler_active' => ! empty($params['enable_serp_crawler']),
+                'model' => 'gemini-3.5-flash',
+                'prompt_tokens' => $article->prompt_tokens,
+                'completion_tokens' => $article->completion_tokens,
+            ],
+            'master_prompt' => $masterPrompt,
+            'outline_prompt' => $outlinePrompt,
+            'section_prompts' => [
+                'intro' => $sectionIntro,
+                'standard' => $sectionStandard,
+                'comparison-table' => $sectionComparison,
+                'faq' => $sectionFaq,
+                'conclusion' => $sectionConclusion,
+                'cta' => $sectionCta,
+            ],
+            'metadata_prompt' => $metadataPrompt,
+        ]);
     }
 }
