@@ -20,51 +20,42 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Create Permissions
-        $managePresets = Permission::firstOrCreate(['name' => 'manage-presets']);
-        $generateContent = Permission::firstOrCreate(['name' => 'generate-content']);
-        $viewContent = Permission::firstOrCreate(['name' => 'view-content']);
-
-        // 2. Create Roles and Assign Permissions
-        $superAdminRole = Role::firstOrCreate(['name' => 'super_admin']);
-        $superAdminRole->syncPermissions([$managePresets, $generateContent, $viewContent]);
-
-        $adminRole = Role::firstOrCreate(['name' => 'admin']);
-        $adminRole->syncPermissions([$managePresets, $generateContent, $viewContent]);
-
-        $editorRole = Role::firstOrCreate(['name' => 'editor']);
-        $editorRole->syncPermissions([$managePresets, $generateContent, $viewContent]);
-
-        $writerRole = Role::firstOrCreate(['name' => 'writer']);
-        $writerRole->syncPermissions([$generateContent, $viewContent]);
-
-        $viewerRole = Role::firstOrCreate(['name' => 'viewer']);
-        $viewerRole->syncPermissions([$viewContent]);
+        // 1 & 2. Seed Permissions and Roles
+        $this->call([
+            PermissionSeeder::class,
+            RoleSeeder::class,
+        ]);
 
         // 3. Create Seed Users for testing
         $superAdminUser = User::firstOrCreate(
             ['email' => 'admin@webaiseo.com'],
             ['name' => 'Master Super Admin', 'password' => bcrypt('password123')]
         );
-        $superAdminUser->assignRole($superAdminRole);
+        $superAdminUser->assignRole('super_admin');
 
         $adminUser = User::firstOrCreate(
             ['email' => 'admin@example.com'],
             ['name' => 'Admin User', 'password' => bcrypt('password')]
         );
-        $adminUser->assignRole($adminRole);
+        $adminUser->assignRole('admin');
+
+        $seoUser = User::firstOrCreate(
+            ['email' => 'seo@example.com'],
+            ['name' => 'SEO Specialist', 'password' => bcrypt('password')]
+        );
+        $seoUser->assignRole('seo_specialist');
 
         $editorUser = User::firstOrCreate(
             ['email' => 'editor@example.com'],
             ['name' => 'Editor User', 'password' => bcrypt('password')]
         );
-        $editorUser->assignRole($editorRole);
+        $editorUser->assignRole('editor');
 
         $viewerUser = User::firstOrCreate(
             ['email' => 'viewer@example.com'],
             ['name' => 'Viewer User', 'password' => bcrypt('password')]
         );
-        $viewerUser->assignRole($viewerRole);
+        $viewerUser->assignRole('viewer');
 
         // Seed Sample Agency Client for immediate testing
         Client::firstOrCreate(

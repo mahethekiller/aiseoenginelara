@@ -23,19 +23,8 @@ class ContentManagementTest extends TestCase
     {
         parent::setUp();
 
-        $viewContent = Permission::create(['name' => 'view-content']);
-
-        $adminRole = Role::create(['name' => 'admin', 'guard_name' => 'web']);
-        $adminRole->givePermissionTo($viewContent);
-
-        $superAdminRole = Role::create(['name' => 'super_admin', 'guard_name' => 'web']);
-        $superAdminRole->givePermissionTo($viewContent);
-
-        $editorRole = Role::create(['name' => 'editor', 'guard_name' => 'web']);
-        $editorRole->givePermissionTo($viewContent);
-
-        $viewerRole = Role::create(['name' => 'viewer', 'guard_name' => 'web']);
-        $viewerRole->givePermissionTo($viewContent);
+        $this->seed(\Database\Seeders\PermissionSeeder::class);
+        $this->seed(\Database\Seeders\RoleSeeder::class);
 
         $this->admin = User::factory()->create();
         $this->admin->assignRole('admin');

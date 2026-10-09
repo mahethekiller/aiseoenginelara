@@ -109,9 +109,18 @@
                 <div>
                     <label class="label py-0.5 text-xs font-semibold">Role <span class="text-error">*</span></label>
                     <select id="u_role" name="role" class="select select-bordered select-sm w-full bg-base-200/50 text-xs">
-                        <option value="editor">Editor (Can create & generate)</option>
-                        <option value="admin">Admin (Full access)</option>
-                        <option value="viewer">Viewer (Read-only)</option>
+                        @foreach($roles as $role)
+                            <option value="{{ $role->name }}">
+                                {{ ucwords(str_replace('_', ' ', $role->name)) }} 
+                                @if($role->name === 'admin') (Full System Access)
+                                @elseif($role->name === 'seo_specialist') (SEO Tracker & Audits)
+                                @elseif($role->name === 'editor') (Create, Edit & Presets)
+                                @elseif($role->name === 'writer') (Content Creation)
+                                @elseif($role->name === 'viewer') (Read-only Audit)
+                                @elseif($role->name === 'super_admin') (Root Super Admin)
+                                @endif
+                            </option>
+                        @endforeach
                     </select>
                 </div>
             </div>

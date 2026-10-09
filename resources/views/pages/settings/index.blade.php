@@ -61,12 +61,95 @@
                                class="input input-bordered input-sm w-full bg-base-200/50 text-xs font-mono" />
                     </div>
 
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <label class="label py-0.5 text-xs font-semibold">SerpApi Key (Google SERP Intelligence & Rank Tracker)</label>
+                            @if(!empty($config['api_keys']['serpapi']))
+                                <span class="badge badge-success badge-xs font-mono">DB Active</span>
+                            @else
+                                <span class="badge badge-ghost badge-xs font-mono">Not Set</span>
+                            @endif
+                        </div>
+                        <input type="password" id="serpapi_key_field" name="api_keys[serpapi]"
+                               value="{{ $config['api_keys']['serpapi'] ?? '' }}"
+                               placeholder="••••••••••••••••••••••••••••••••"
+                               class="input input-bordered input-sm w-full bg-base-200/50 text-xs font-mono" />
+                    </div>
+
                     <div class="pt-2 flex justify-end">
                         <button type="button" onclick="saveApiKeys(this)" class="btn btn-primary btn-sm font-bold shadow-xs">
                             Save API Credentials
                         </button>
                     </div>
                 </form>
+            </div>
+
+            <!-- Live SerpApi Credits Card -->
+            <div class="card bg-base-100 border border-base-300 shadow-sm rounded-2xl p-5">
+                <div class="flex items-center justify-between pb-3 mb-3 border-b border-base-300">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+                        <h2 class="text-sm font-bold text-base-content">SerpApi Account & Credits</h2>
+                    </div>
+                    <button type="button" onclick="verifySerpApiAccount(this)" class="btn btn-ghost btn-circle btn-xs" title="Refresh Live Balance">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <div id="serpapi-credits-container" class="space-y-3">
+                    @if(!empty($serpCredits['has_key']) && !empty($serpCredits['success']))
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-base-content/60 font-medium">Plan:</span>
+                                <span class="font-bold text-xs text-base-content ml-1">{{ $serpCredits['plan_name'] ?? 'Production' }}</span>
+                            </div>
+                            <span class="badge badge-success badge-xs font-mono">Connected</span>
+                        </div>
+
+                        <div class="bg-base-200/60 p-3.5 rounded-xl border border-base-300 space-y-2">
+                            <div class="flex justify-between items-baseline">
+                                <span class="text-xs text-base-content/70 font-semibold">Available Search Balance</span>
+                                <span class="font-mono font-bold text-base text-primary">
+                                    {{ number_format($serpCredits['searches_left'] ?? 0) }}
+                                </span>
+                            </div>
+                            @if(($serpCredits['extra_credits'] ?? 0) > 0)
+                                <div class="flex items-center justify-between text-[11px] bg-base-100/80 px-2.5 py-1.5 rounded-lg border border-base-300/70 font-mono">
+                                    <span class="text-base-content/70">Prepaid Extra Credits:</span>
+                                    <span class="text-emerald-500 font-bold">+{{ number_format($serpCredits['extra_credits']) }} searches</span>
+                                </div>
+                            @endif
+                            @php
+                                $totalLimit = max(1, $serpCredits['searches_per_month'] ?? 250);
+                                $usedCount = $serpCredits['this_month_usage'] ?? 0;
+                            @endphp
+                            <div class="flex justify-between text-[10px] text-base-content/50 font-mono pt-1 border-t border-base-300/50">
+                                <span>Monthly Plan Quota: {{ number_format($usedCount) }} / {{ number_format($totalLimit) }} used</span>
+                                <span>Account: {{ $serpCredits['account_status'] ?? 'Active' }}</span>
+                            </div>
+                        </div>
+
+                        <div class="text-[11px] text-base-content/60 flex items-center justify-between">
+                            <span>Account: <span class="font-mono">{{ $serpCredits['account_email'] ?? 'Active' }}</span></span>
+                            <span class="text-[10px] text-base-content/40">Hourly: {{ $serpCredits['last_hour_searches'] ?? 0 }} searches</span>
+                        </div>
+                    @else
+                        <div class="alert alert-warning py-2 text-xs rounded-xl">
+                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                            <div>
+                                <div class="font-bold">SerpApi Not Connected</div>
+                                <div class="text-[11px]">{{ $serpCredits['error'] ?? 'Enter your SerpApi key above and click Save API Credentials.' }}</div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="pt-2">
+                    <button type="button" onclick="verifySerpApiAccount(this)" class="btn btn-outline btn-xs w-full gap-1.5 border-base-300">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i>
+                        <span>Verify Key & Fetch Live Credits</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Live Model Sync Card -->
@@ -244,6 +327,33 @@
             error: function(xhr) {
                 $(btn).removeAttr('disabled').removeClass('opacity-75').html(orig);
                 showToast(xhr.responseJSON?.message || 'Failed to save API keys.', 'error');
+            }
+        });
+    }
+
+    function verifySerpApiAccount(btn) {
+        $(btn).attr('disabled', 'disabled');
+        const orig = $(btn).html();
+        $(btn).html('<span class="loading loading-spinner loading-xs me-1"></span> Checking...');
+
+        const currentKeyVal = $('#serpapi_key_field').val();
+
+        $.ajax({
+            url: "{{ route('settings.serpapi.verify') }}",
+            type: 'POST',
+            data: { api_key: currentKeyVal },
+            success: function(res) {
+                $(btn).removeAttr('disabled').html(orig);
+                if (res.success) {
+                    showToast('SerpApi connected! Searches remaining: ' + res.searches_left, 'success');
+                    setTimeout(() => window.location.reload(), 600);
+                } else {
+                    showToast(res.error || 'Failed to verify SerpApi key.', 'error');
+                }
+            },
+            error: function(xhr) {
+                $(btn).removeAttr('disabled').html(orig);
+                showToast(xhr.responseJSON?.error || 'Verification failed. Please check your SerpApi key.', 'error');
             }
         });
     }

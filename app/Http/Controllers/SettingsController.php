@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\AiPreset;
 use App\Models\Client;
 use App\Models\SyncedModel;
+use App\Models\SystemSetting;
+use App\Services\SerpApiClientService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -34,8 +36,9 @@ class SettingsController extends Controller
         }
 
         $syncedModels = SyncedModel::all()->pluck('models', 'provider')->toArray();
+        $serpCredits = app(SerpApiClientService::class)->getAccountCredits();
 
-        return view('pages.settings.index', compact('config', 'presets', 'syncedModels'));
+        return view('pages.settings.index', compact('config', 'presets', 'syncedModels', 'serpCredits'));
     }
 
     public function saveApiKeys(Request $request)
@@ -146,6 +149,12 @@ class SettingsController extends Controller
             ];
         }
 
+        // Check DB for SerpApi key override
+        $dbSerpKey = SystemSetting::get('serpapi_key');
+        if (! empty($dbSerpKey)) {
+            $config['api_keys']['serpapi'] = $dbSerpKey;
+        }
+
         // Mask keys for client
         if (isset($config['api_keys'])) {
             foreach ($config['api_keys'] as $provider => $key) {
@@ -191,6 +200,9 @@ class SettingsController extends Controller
         foreach ($newApiKeys as $provider => $key) {
             if ($key && ! str_contains($key, '••••')) {
                 $mergedApiKeys[$provider] = $key;
+                if ($provider === 'serpapi') {
+                    SystemSetting::set('serpapi_key', $key, 'api_keys', true, 'SerpApi API key for Google SERP intelligence');
+                }
             }
         }
 
@@ -228,6 +240,18 @@ class SettingsController extends Controller
         }
 
         return response()->json(['message' => 'Configuration saved successfully', 'config' => $config]);
+    }
+
+    public function verifySerpApiKey(Request $request, SerpApiClientService $serpClient)
+    {
+        $key = $request->input('api_key');
+        if (! empty($key) && ! str_contains($key, '••••')) {
+            $serpClient->setApiKey($key);
+        }
+
+        $credits = $serpClient->getAccountCredits(true);
+
+        return response()->json($credits);
     }
 
     public function syncModels(Request $request)

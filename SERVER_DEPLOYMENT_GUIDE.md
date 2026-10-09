@@ -107,12 +107,27 @@ Execute database migrations and seed the initial roles, permissions, system prom
 php artisan migrate --force
 
 # Seed essential system records (roles, permissions, prompt archetypes, admin user)
+php artisan db:seed --class=PermissionSeeder --force
+php artisan db:seed --class=RoleSeeder --force
 php artisan db:seed --force
 ```
 
-> **Default Seeded Admin Credentials:**
-> - **Email**: `admin@aiseoengine.local` (or configured admin user)
-> - **Password**: `password` (Change immediately upon first login under `/users` or `/settings`)
+#### System Roles & Permissions Matrix:
+| Role | Assigned Permissions | Purpose |
+| :--- | :--- | :--- |
+| `super_admin` | All permissions | Master system administrator |
+| `admin` | All permissions | Agency administrator |
+| `seo_specialist` | `track-ranks`, `view-rank-database`, `export-rank-data`, `manage-clients` | Dedicated SEO rank tracking, SERP audits & Agency Client profiles |
+| `editor` | `manage-presets`, `generate-content`, `view-content`, `manage-clients`, `track-ranks`, `view-rank-database`, `export-rank-data`, `delete-rank-data` | Content editor & template manager |
+| `writer` | `generate-content`, `view-content`, `track-ranks`, `view-rank-database`, `export-rank-data` | Content creator & rank researcher |
+| `viewer` | `view-content`, `view-rank-database` | Read-only auditor (no scanning or deletion) |
+
+> **Default Seeded Credentials:**
+> - **Super Admin**: `admin@webaiseo.com` / `password123`
+> - **SEO Specialist**: `seo@example.com` / `password`
+> - **Admin User**: `admin@example.com` / `password`
+> - **Editor User**: `editor@example.com` / `password`
+> - **Viewer User**: `viewer@example.com` / `password`
 
 ---
 
@@ -329,7 +344,10 @@ chmod +x /var/www/aiseoengine/deploy.sh
 ## 🩺 8. Post-Deployment Verification Checklist
 
 - [ ] Visit `https://your-domain.com/login` and log in with your admin credentials.
-- [ ] Go to **Settings & Presets** (`/settings`) and enter your API keys (**Gemini**, **OpenAI**, **Anthropic**, **DeepSeek**).
+- [ ] Go to **Settings & Presets** (`/settings`) and enter your API keys (**Gemini**, **OpenAI**, **Anthropic**, **DeepSeek**, **SerpApi**).
+- [ ] In **Settings & Presets**, verify your **SerpApi Account & Credits** card connects and displays live monthly searches remaining.
+- [ ] Visit **Rank Tracker** (`/rank-tracker`) and run a live Top 50 keyword scan to verify Google SERP parsing, batch grouping, and live credits telemetry.
+- [ ] Visit **Rank Database** (`/rank-database`) to verify historical search audits, batch vs keyword toggle, batch inspection dialog, and 1-click Batch CSV streaming.
 - [ ] Click **Sync Provider Models** on `/settings` to verify live outgoing HTTP connectivity to provider APIs.
 - [ ] Go to **Agency Clients** (`/clients`) and add a client domain to verify the XML sitemap crawler.
 - [ ] Go to **SEO Blog Creator** (`/blog-creator`) and generate a sample test article to verify full LLM generation.
