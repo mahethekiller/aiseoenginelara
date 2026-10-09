@@ -502,7 +502,7 @@ class KeywordRankController extends Controller
         $country = $request->input('country');
         $filterUserId = $request->input('user_id');
 
-        $query = KeywordRankCheck::query()->with(['client', 'user'])->orderBy('id', 'desc');
+        $query = KeywordRankCheck::query()->with(['client', 'user']);
 
         // Role scoping
         if (! $isAdmin) {
@@ -553,7 +553,7 @@ class KeywordRankController extends Controller
 
         $viewMode = $request->input('view_mode', 'batches');
         $batches = $this->paginateBatches($query, 15);
-        $rankChecks = $query->paginate(20)->withQueryString();
+        $rankChecks = (clone $query)->orderBy('id', 'desc')->paginate(20)->withQueryString();
 
         // 5 KPI Metric Cards (scoped by role and client)
         $kpiBaseQuery = KeywordRankCheck::query();
@@ -613,10 +613,13 @@ class KeywordRankController extends Controller
      */
     protected function paginateBatches($query, int $perPage = 15)
     {
-        $batchIdsQuery = (clone $query)->select('batch_id')
+        $batchIdsQuery = (clone $query)
+            ->reorder()
+            ->select('batch_id')
+            ->selectRaw('MAX(id) as latest_id')
             ->whereNotNull('batch_id')
             ->groupBy('batch_id')
-            ->orderByRaw('MAX(id) DESC');
+            ->orderByDesc('latest_id');
 
         $paginatedBatchIds = $batchIdsQuery->paginate($perPage)->withQueryString();
 
@@ -638,7 +641,7 @@ class KeywordRankController extends Controller
             $top3Count = $items->where('is_ranked', true)->where('position', '<=', 3)->count();
             $top10Count = $items->where('is_ranked', true)->whereBetween('position', [1, 10])->count();
             $strikingCount = $items->where('is_ranked', true)->whereBetween('position', [11, 50])->count();
-            $unrankedCount = $items->where('is_ranked', false)->count() + $items->whereNull('position')->count();
+            $unrankedCount = $items->filter(fn ($r) => ! $r->is_ranked || is_null($r->position) || $r->position > 50)->count();
 
             $bestPosition = $items->where('is_ranked', true)->min('position');
 
