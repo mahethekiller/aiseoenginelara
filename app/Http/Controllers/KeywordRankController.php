@@ -768,7 +768,7 @@ class KeywordRankController extends Controller
             'top3' => $records->where('is_ranked', true)->where('position', '<=', 3)->count(),
             'top10' => $records->where('is_ranked', true)->whereBetween('position', [1, 10])->count(),
             'striking' => $records->where('is_ranked', true)->whereBetween('position', [11, 50])->count(),
-            'unranked' => $records->where('is_ranked', false)->count() + $records->whereNull('position')->count(),
+            'unranked' => $records->filter(fn ($r) => ! $r->is_ranked || is_null($r->position) || $r->position > 50)->count(),
             'keywords' => $records->map(function ($item) {
                 return [
                     'id' => $item->id,
