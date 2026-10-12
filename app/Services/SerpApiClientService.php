@@ -350,11 +350,19 @@ class SerpApiClientService
         ksort($cacheParams);
         $cacheKey = md5('serp_google_'.json_encode($cacheParams));
 
-        // Cache check removed: Always execute live authenticated HTTP request for 100% real-time data
+        if ($forceRefresh) {
+            SerpApiCache::where('cache_key', $cacheKey)->delete();
+        }
+
+        // Always execute live authenticated HTTP request for real-time data
         try {
             $apiParams = array_merge($searchParams, [
                 'api_key' => $key,
             ]);
+
+            if ($forceRefresh) {
+                $apiParams['no_cache'] = 'true';
+            }
 
             $response = Http::timeout(60)->get('https://serpapi.com/search.json', $apiParams);
 

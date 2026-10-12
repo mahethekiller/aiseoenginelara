@@ -98,7 +98,7 @@ class ProcessKeywordRankBatchJob implements ShouldQueue
                 'language' => $batch->language,
                 'device' => $batch->device,
                 'depth' => $batch->depth,
-                'force_refresh' => false,
+                'force_refresh' => true,
             ];
 
             try {
