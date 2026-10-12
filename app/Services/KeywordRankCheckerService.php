@@ -71,6 +71,7 @@ class KeywordRankCheckerService
         $country = strtolower(trim($options['country'] ?? 'us'));
         $location = ! empty($options['location']) ? trim($options['location']) : null;
         if (! empty($location)) {
+            $location = preg_replace('/\s*,\s*/', ', ', $location);
             $location = $this->serpClient->canonicalizeLocation($location, $country) ?: $location;
         }
         $language = strtolower(trim($options['language'] ?? 'en'));

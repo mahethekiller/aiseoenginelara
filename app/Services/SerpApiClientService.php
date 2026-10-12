@@ -268,8 +268,9 @@ class SerpApiClientService
                                 ? round($reach / 1000000, 1).'M reach'
                                 : ($reach > 1000 ? round($reach / 1000).'K reach' : '');
 
+                            $rawName = $item['canonical_name'] ?? ($item['name'] ?? '');
                             $results[] = [
-                                'canonical_name' => $item['canonical_name'] ?? ($item['name'] ?? ''),
+                                'canonical_name' => preg_replace('/\s*,\s*/', ', ', $rawName),
                                 'name' => $item['name'] ?? '',
                                 'country_code' => $item['country_code'] ?? '',
                                 'target_type' => $item['target_type'] ?? 'Location',
@@ -334,8 +335,9 @@ class SerpApiClientService
         }
 
         if (! empty($params['location'])) {
-            $canonicalLoc = $this->canonicalizeLocation($params['location'], $searchParams['gl']);
-            $searchParams['location'] = $canonicalLoc ?: trim($params['location']);
+            $normLoc = preg_replace('/\s*,\s*/', ', ', trim($params['location']));
+            $canonicalLoc = $this->canonicalizeLocation($normLoc, $searchParams['gl']);
+            $searchParams['location'] = $canonicalLoc ?: $normLoc;
         }
 
         if (empty($searchParams['q'])) {

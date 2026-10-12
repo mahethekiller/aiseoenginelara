@@ -198,9 +198,14 @@ class KeywordRankController extends Controller
         // Generic mode fix: If client_id is explicitly submitted as empty / none, strictly keep it null!
         $clientId = ! empty($validated['client_id']) ? (int) $validated['client_id'] : null;
 
+        $normalizedLocation = ! empty($validated['location']) ? trim($validated['location']) : null;
+        if ($normalizedLocation) {
+            $normalizedLocation = preg_replace('/\s*,\s*/', ', ', $normalizedLocation);
+        }
+
         $options = [
             'country' => $validated['country'] ?? 'in',
-            'location' => $validated['location'] ?? null,
+            'location' => $normalizedLocation,
             'language' => $validated['language'] ?? 'en',
             'device' => $validated['device'] ?? 'desktop',
             'match_type' => $validated['match_type'] ?? 'domain',

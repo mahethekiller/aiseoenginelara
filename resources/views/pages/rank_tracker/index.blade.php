@@ -1196,10 +1196,11 @@
     }
 
     function selectCanonicalLocation(canonicalName) {
-        $('#location_input').val(canonicalName);
+        const formatted = (canonicalName || '').replace(/\s*,\s*/g, ', ');
+        $('#location_input').val(formatted);
         $('#location-suggestions').addClass('hidden').empty();
         $('#canonical-status-pill').removeClass('hidden');
-        showToast('Selected Canonical Location: ' + canonicalName, 'success');
+        showToast('Selected Canonical Location: ' + formatted, 'success');
     }
 
     $(document).on('click', function(e) {
