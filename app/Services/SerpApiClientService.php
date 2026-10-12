@@ -347,19 +347,7 @@ class SerpApiClientService
         ksort($cacheParams);
         $cacheKey = md5('serp_google_'.json_encode($cacheParams));
 
-        // Check persistent database cache
-        if (! $forceRefresh) {
-            $cached = SerpApiCache::valid()->where('cache_key', $cacheKey)->first();
-            if ($cached && ! empty($cached->response_data)) {
-                $data = $cached->response_data;
-                $data['is_cached'] = true;
-                $data['cached_at'] = $cached->created_at ? $cached->created_at->toIso8601String() : now()->toIso8601String();
-
-                return $data;
-            }
-        }
-
-        // Execute live authenticated HTTP request
+        // Cache check removed: Always execute live authenticated HTTP request for 100% real-time data
         try {
             $apiParams = array_merge($searchParams, [
                 'api_key' => $key,

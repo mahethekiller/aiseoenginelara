@@ -332,15 +332,15 @@
                 @else
                 <div class="col-span-1">
                     <label class="label py-1 text-xs font-bold text-base-content flex items-center gap-1.5">
-                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500"></i>
-                        <span>Caching TTL</span>
+                        <i data-lucide="zap" class="w-3.5 h-3.5 text-warning"></i>
+                        <span>Scan Engine</span>
                     </label>
                     <div class="input input-bordered input-sm w-full bg-base-200/30 text-xs font-mono flex items-center justify-between text-base-content/70 cursor-not-allowed">
-                        <span>24 Hours (Smart Cache)</span>
+                        <span>100% Live Real-Time</span>
                         <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-500"></i>
                     </div>
                     <span class="text-[10px] text-base-content/50 mt-1 block">
-                        Reduces unnecessary SerpApi credit usage
+                        Always fresh live Google SERP crawl (No cache lock)
                     </span>
                 </div>
                 @endif
@@ -380,16 +380,14 @@
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                         </span>
-                        <span class="font-medium">Ready to scan. Fast cached results for repeated queries within 24h.</span>
+                        <span class="font-medium">Ready to scan. 100% live Google organic search with real-time rank precision.</span>
                     </div>
 
-                    <!-- Force Live Refresh Switch -->
-                    <label class="flex items-center gap-2 cursor-pointer text-xs text-base-content/80 hover:text-base-content px-2.5 py-1 rounded-lg bg-base-200/70 border border-base-300 hover:bg-base-200 transition-colors select-none">
-                        <input type="checkbox" name="force_refresh" value="1" class="checkbox checkbox-primary checkbox-xs rounded" />
-                        <span class="flex items-center gap-1 font-semibold text-[11px]">
-                            <i data-lucide="zap" class="w-3.5 h-3.5 text-warning"></i> Force Live Refresh
-                        </span>
-                    </label>
+                    <!-- Live Indicator Badge -->
+                    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-base-200/70 border border-base-300 text-xs select-none">
+                        <i data-lucide="zap" class="w-3.5 h-3.5 text-warning"></i>
+                        <span class="font-semibold text-[11px] text-base-content/80">Always Live (No Cache Lock)</span>
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-2 self-end sm:self-auto">
