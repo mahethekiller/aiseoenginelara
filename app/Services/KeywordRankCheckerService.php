@@ -72,18 +72,22 @@ class KeywordRankCheckerService
         $location = ! empty($options['location']) ? trim($options['location']) : null;
         if (! empty($location)) {
             $location = preg_replace('/\s*,\s*/', ', ', $location);
-            $location = $this->serpClient->canonicalizeLocation($location, $country) ?: $location;
+            if (substr_count($location, ',') < 2) {
+                $location = $this->serpClient->canonicalizeLocation($location, $country) ?: $location;
+            }
         }
         $language = strtolower(trim($options['language'] ?? 'en'));
         $device = strtolower($options['device'] ?? 'desktop') === 'mobile' ? 'mobile' : 'desktop';
         $forceRefresh = (bool) ($options['force_refresh'] ?? false);
+        $depth = max(10, min(100, (int) ($options['depth'] ?? 50)));
 
-        // Fetch Top 50 Google SERP via SerpApi
+        // Fetch Google SERP via SerpApi with optimized payload restrictor
         $serpParams = [
             'q' => $keyword,
             'gl' => $country,
             'hl' => $language,
             'device' => $device,
+            'json_restrictor' => 'organic_results,answer_box,pagination,search_metadata,search_information,related_questions,knowledge_graph,local_results',
         ];
         if (! empty($location)) {
             $serpParams['location'] = $location;
@@ -91,7 +95,7 @@ class KeywordRankCheckerService
 
         $serpResult = $this->serpClient->searchGoogle($serpParams, $forceRefresh);
 
-        // Scan organic results (Top 50)
+        // Scan organic results (Page 1)
         $organicResults = $serpResult['organic_results'] ?? [];
         $featuredSnippet = $serpResult['answer_box'] ?? ($serpResult['featured_snippet'] ?? null);
 
@@ -116,7 +120,7 @@ class KeywordRankCheckerService
         // 2. Scan Organic Results list (Page 1)
         foreach ($organicResults as $item) {
             $pos = (int) ($item['position'] ?? 0);
-            if ($pos > 50 || $pos < 1) {
+            if ($pos > $depth || $pos < 1) {
                 continue;
             }
 
@@ -143,10 +147,11 @@ class KeywordRankCheckerService
             }
         }
 
-        // Multi-page crawl: If not found on Page 1, crawl Pages 2 to 5 (up to rank 50)
+        // Multi-page crawl: If not found on Page 1, crawl subsequent pages up to requested depth
         if ($matchedPosition === null && ! empty($serpResult['pagination']['other_pages'])) {
             $otherPages = $serpResult['pagination']['other_pages'];
-            $maxPageToCheck = min(5, count($otherPages) + 1);
+            $maxPagesByDepth = (int) ceil($depth / 10);
+            $maxPageToCheck = min($maxPagesByDepth, count($otherPages) + 1);
             $runningRank = count($organicResults);
 
             for ($page = 2; $page <= $maxPageToCheck; $page++) {
@@ -157,12 +162,17 @@ class KeywordRankCheckerService
                     $nextPageResult = $this->serpClient->searchGoogle($pageParams, $forceRefresh);
                     $nextOrganic = $nextPageResult['organic_results'] ?? [];
 
+                    // Short-circuit: If Google returned 0 results, no further pages exist
+                    if (empty($nextOrganic)) {
+                        break;
+                    }
+
                     foreach ($nextOrganic as $idx => $item) {
                         $rawPos = (int) ($item['position'] ?? 0);
-                        // True sequential position across pages: use actual running organic result count
+                        // True sequential position across pages
                         $pos = ($rawPos > $startOffset) ? $rawPos : ($runningRank + $idx + 1);
-                        if ($pos > 50) {
-                            break;
+                        if ($pos > $depth) {
+                            break 2;
                         }
 
                         $link = $item['link'] ?? '';
@@ -173,6 +183,11 @@ class KeywordRankCheckerService
                             $matchedSnippet = $item['snippet'] ?? null;
                             break 2; // Found! Break out of pagination loop
                         }
+                    }
+
+                    // Short-circuit: If this page has fewer than 5 results, Google index is exhausted
+                    if (count($nextOrganic) < 5) {
+                        break;
                     }
 
                     $runningRank += count($nextOrganic);
@@ -302,19 +317,36 @@ class KeywordRankCheckerService
         ?int $userId = null,
         ?int $clientId = null
     ): array {
+        @set_time_limit(300);
+
         $results = [];
         $cleanKeywords = [];
+        $seenLower = [];
 
         foreach ($keywords as $kw) {
             $trimmed = trim($kw);
-            if (! empty($trimmed) && ! in_array($trimmed, $cleanKeywords)) {
+            $lower = mb_strtolower($trimmed);
+            if (! empty($trimmed) && ! isset($seenLower[$lower])) {
                 $cleanKeywords[] = $trimmed;
+                $seenLower[$lower] = true;
             }
         }
 
         // Limit batch to maximum 25 keywords per run to prevent excessive waits
         $cleanKeywords = array_slice($cleanKeywords, 0, 25);
         $batchId = 'B-' . date('Ymd-His') . '-' . Str::lower(Str::random(4));
+
+        // Pre-resolve canonical location once for the entire batch to eliminate repeated geocoding calls
+        if (! empty($options['location'])) {
+            $rawLoc = preg_replace('/\s*,\s*/', ', ', trim($options['location']));
+            $country = strtolower(trim($options['country'] ?? 'us'));
+            if (substr_count($rawLoc, ',') < 2) {
+                $canonicalLoc = $this->serpClient->canonicalizeLocation($rawLoc, $country);
+                $options['location'] = $canonicalLoc ?: $rawLoc;
+            } else {
+                $options['location'] = $rawLoc;
+            }
+        }
 
         foreach ($cleanKeywords as $index => $keyword) {
             try {

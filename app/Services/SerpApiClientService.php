@@ -340,6 +340,10 @@ class SerpApiClientService
             $searchParams['location'] = $canonicalLoc ?: $normLoc;
         }
 
+        if (! empty($params['json_restrictor'])) {
+            $searchParams['json_restrictor'] = trim($params['json_restrictor']);
+        }
+
         if (empty($searchParams['q'])) {
             throw new \InvalidArgumentException('Search query keyword (q) is required.');
         }
