@@ -292,7 +292,60 @@ Add this single line:
 
 ---
 
-## 🚀 7. Automated One-Command Update Script (`deploy.sh`)
+## 🎛️ 7. cPanel Deployment & Background Queue Setup
+
+If deploying on a **cPanel** hosting environment:
+
+### Step 1: Open cPanel Terminal or SSH
+Navigate to your application root directory (where `artisan` is located):
+```bash
+cd /home/username/public_html
+# (or cd /home/username/repositories/aiseoengine depending on your folder structure)
+```
+
+### Step 2: Pull Latest Code
+```bash
+git pull origin main
+```
+
+### Step 3: Run Safe Database Migrations & Seeders
+This creates the `rank_check_batches` table and assigns the new `bulk-track-ranks` permission safely without wiping any production data:
+```bash
+php artisan migrate --force
+php artisan db:seed --class=PermissionSeeder --force
+php artisan db:seed --class=RoleSeeder --force
+```
+
+### Step 4: Re-cache Application Configuration
+```bash
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+### Step 5: Reload / Restart the Queue Worker on cPanel
+Because `queue:work` keeps PHP files in memory, restart the worker so it executes with the latest code:
+```bash
+php artisan queue:restart
+```
+
+#### Running the Queue Worker on cPanel:
+- **Method A: cPanel Cron Job (Recommended for Shared/Reseller cPanel)**:
+  In **cPanel > Cron Jobs**, set a cron job running every minute:
+  ```cron
+  * * * * * cd /home/username/public_html && php artisan queue:work --stop-when-empty --timeout=1800 --tries=3 >> /dev/null 2>&1
+  ```
+  *(Also ensure Laravel scheduler cron is active: `* * * * * cd /home/username/public_html && php artisan schedule:run >> /dev/null 2>&1`)*
+
+- **Method B: Background Daemon via cPanel Terminal (For VPS / Cloud cPanel with SSH)**:
+  ```bash
+  nohup php artisan queue:work --timeout=1800 --tries=3 > storage/logs/worker.log 2>&1 &
+  ```
+
+---
+
+## 🚀 8. Automated One-Command Update Script (`deploy.sh`)
 
 Create `/var/www/aiseoengine/deploy.sh` for zero-downtime subsequent updates:
 
@@ -341,7 +394,7 @@ chmod +x /var/www/aiseoengine/deploy.sh
 
 ---
 
-## 🩺 8. Post-Deployment Verification Checklist
+## 🩺 9. Post-Deployment Verification Checklist
 
 - [ ] Visit `https://your-domain.com/login` and log in with your admin credentials.
 - [ ] Go to **Settings & Presets** (`/settings`) and enter your API keys (**Gemini**, **OpenAI**, **Anthropic**, **DeepSeek**, **SerpApi**).
