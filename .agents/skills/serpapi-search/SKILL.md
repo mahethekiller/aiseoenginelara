@@ -5,282 +5,211 @@ description: "Queries and parses Google Search Engine Results Pages (SERP) using
 
 # SerpApi Google Search API Integration
 
-Production guide for querying, scraping, and parsing Google Search Engine Results Pages (SERP) via SerpApi.
-
-## When to Use
-
-- Building keyword rank tracking systems and SEO dashboards.
-- Scraping localized organic Google search rankings (`desktop` or `mobile`).
-- Extracting Google Map Pack / Local 3-Pack places (`local_results`).
-- Detecting SERP features: Featured Snippets (`answer_box`), People Also Ask (`related_questions`), Knowledge Graph (`knowledge_graph`).
-- Auditing competitor domains and landing page rankings for targeted search queries.
+Production guide and engineering blueprint for executing Google Search Engine Results Pages (SERP) queries, scraping localized organic rankings, extracting SERP features, and building SEO tracking tools using SerpApi.
 
 ---
 
-## Architecture & Endpoints
+## 1. When to Use This Skill
 
-SerpApi translates live Google search queries into structured JSON responses via real-time browser rendering and proxy routing.
+- **Keyword Rank Tracking**: Discover exact rank positions (1–100) for a target domain or specific landing page.
+- **Local SEO & Maps Pack**: Extract Google 3-Pack businesses (`local_results.places`), ratings, review counts, and GPS coordinates.
+- **SERP Features Auditing**: Detect Featured Snippets (`answer_box`), People Also Ask (`related_questions`), Knowledge Graphs, and Reddit/Forum discussions.
+- **Device Discrepancy Audits**: Compare SERP layout and ranking shifts between `desktop` and `mobile` crawlers.
+- **Competitor Intelligence**: Crawl top ranking competitors, titles, URLs, and rich snippets for target keywords.
+
+---
+
+## 2. API Endpoints & Request Routing
 
 | Endpoint | Method | Purpose |
 | :--- | :--- | :--- |
 | `https://serpapi.com/search.json` | `GET` | Core search endpoint for Google SERP queries |
-| `https://serpapi.com/locations.json` | `GET` | Canonical location search & validation |
-| `https://serpapi.com/account` | `GET` | Check account subscription, plan limit, and remaining searches |
+| `https://serpapi.com/locations.json` | `GET` | Geocoding autocomplete and canonical location validator |
+| `https://serpapi.com/account` | `GET` | Account plan, credit usage, and hourly rate-limit status |
+| `https://serpapi.com/searches/{id}.json` | `GET` | Retrieve search results for asynchronous queries (`async=true`) |
 
 ---
 
-## Core Query Parameters
+## 3. Core Workflow: Keyword Rank Tracking
 
-| Parameter | Type | Required | Description | Example |
-| :--- | :--- | :--- | :--- | :--- |
-| `engine` | string | Optional | Search engine selector (defaults to `google`). | `google` |
-| `q` | string | **Yes** | Search keyword or query string. | `best emergency medicine specialist in Ahmedabad` |
-| `api_key` | string | **Yes** | SerpApi secret API key. | `your_serpapi_key` |
-| `location` | string | Optional | Canonical geographic location for local SERPs. | `Ahmedabad, Gujarat, India` |
-| `gl` | string | Optional | Two-letter country code for Google search edition. | `in`, `us`, `gb` |
-| `hl` | string | Optional | Two-letter language code for the search interface. | `en`, `hi`, `es` |
-| `google_domain`| string | Optional | Specific Google top-level domain. | `google.co.in`, `google.com` |
-| `device` | string | Optional | Client device emulation: `desktop`, `mobile`, or `tablet`. | `desktop` |
-| `start` | integer| Optional | Pagination offset for search results (multiples of 10). | `0`, `10`, `20`, `30`, `40` |
-| `num` | integer| Optional | Number of results per request (Note: often ignored by Google for localized queries). | `10` |
-| `output` | string | Optional | Format of the response (`json` or `html`). | `json` |
+Use this checklist when building or debugging SERP rank tracking routines:
+
+- [ ] **1. Validate Credentials**: Ensure `SERPAPI_API_KEY` is present and active via `/account`.
+- [ ] **2. Normalize Location**: Sanitize location string with single space after every comma (e.g. `"Ahmedabad, Gujarat, India"`).
+- [ ] **3. Emulate Target Device**: Choose `desktop` (standard PC) or `mobile` (smartphone user agent).
+- [ ] **4. Select Google Domain & Country**: Match `google_domain` (e.g. `google.co.in`) with `gl` (`in`) and `hl` (`en`).
+- [ ] **5. Implement Multi-Page Pagination Loop**: Loop `start = 0, 10, 20, 30...` up to desired depth (Top 50/100). Do NOT use `num=100`.
+- [ ] **6. Match Target Domain**: Normalize result URLs (strip `http://`, `https://`, `www.`, and trailing `/`) before comparing.
+- [ ] **7. Extract SERP Features**: Check for Position 0 Featured Snippets and Local Maps Pack placements on Page 1 (`start=0`).
+- [ ] **8. Handle Edge Cases**: Flag unranked keywords (>50 or >100) and log HTTP errors without halting the worker batch.
 
 ---
 
-## Critical Production Gotchas
+## 4. Critical Production Rules & Pitfalls
 
-### 1. Comma-Space Canonical Location Formatting
+### Rule 1: Canonical Location Formatting (Comma-Space Requirement)
 > [!IMPORTANT]
-> Google maps geographic regions using the encoded `uule` parameter derived from `location`. If commas lack single trailing spaces (e.g. `"Ahmedabad,Gujarat,India"` instead of `"Ahmedabad, Gujarat, India"`), SerpApi cannot match Google's canonical canonical geocoding table and falls back to broader country-level IP routing.
+> Google maps geographic regions using the encoded `uule` parameter derived from `location`. If commas lack single trailing spaces (e.g. `"Ahmedabad,Gujarat,India"` instead of `"Ahmedabad, Gujarat, India"`), SerpApi cannot match Google's geocoding table and falls back to broader country-level IP routing, completely altering local rankings!
 >
-> **Always sanitize location strings before dispatching queries:**
+> **Enforce universal location sanitization:**
 > ```php
 > $normalizedLocation = preg_replace('/\s*,\s*/', ', ', trim($rawLocation));
 > ```
 
-### 2. Multi-Page Pagination with `start` Offset
+### Rule 2: Multi-Page Pagination with `start` Offset (Do NOT use `num=100`)
 Google has deprecated `num=100` on most localized desktop and mobile search indices. Requesting `num=100` frequently returns only 10 results. To check rankings down to Top 50 or Top 100:
-- Query page 1 with `start=0` (positions 1–10).
-- Query page 2 with `start=10` (positions 11–20).
-- Query page 3 with `start=20` (positions 21–30), and so on.
-- Maintain a running absolute position counter: `offset + result['position']`.
+- Query Page 1: `start=0` (Ranks 1–10).
+- Query Page 2: `start=10` (Ranks 11–20).
+- Query Page 3: `start=20` (Ranks 21–30).
+- Query Page 4: `start=30` (Ranks 31–40).
+- Query Page 5: `start=40` (Ranks 41–50).
+- Absolute Rank Formula: `currentRank = $start + ($itemIndex + 1)`.
 
-### 3. HTTP Client Timeout Configuration
-SerpApi performs real-time browser rendering and proxy routing across residential pools.
-- Standard timeout: Minimum **45 to 60 seconds**.
-- Short timeouts (e.g. 15s) will produce sporadic `cURL error 28: Operation timed out` failures during high Google proxy traffic.
+### Rule 3: High HTTP Timeout Configuration
+SerpApi renders live Google pages through proxy networks and residential IP pools.
+- **Set HTTP client timeout to 45–60 seconds**.
+- Short timeouts (10–15s) will trigger intermittent `cURL error 28: Operation timed out` exceptions during peak traffic.
+- Configure automatic retry on failure: `Http::timeout(60)->retry(2, 500)`.
 
-### 4. Domain & URL Normalization for Rank Checking
-When checking if a client domain matches a SERP organic result, strip schemes, www prefixes, and trailing slashes:
+### Rule 4: Domain Normalization Engine
+Never perform strict string equality on raw URLs (`https://www.example.com/` vs `example.com`). Always extract host and strip `www`:
 ```php
-function normalizeDomain(string $url): string {
-    $host = parse_url(trim($url), PHP_URL_HOST) ?? $url;
-    return strtolower(preg_replace('/^www\./i', '', trim($host)));
+function normalizeDomain(string $urlOrDomain): string {
+    $host = parse_url(trim($urlOrDomain), PHP_URL_HOST) ?? trim($urlOrDomain);
+    return strtolower(preg_replace('/^www\./i', '', trim($host, '/')));
 }
 ```
 
 ---
 
-## Response Structure & Parsing
+## 5. Key Parameters Cheat Sheet
 
-A standard response from `https://serpapi.com/search.json` contains structured blocks:
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `q` | string | **Yes** | — | Search query. Supports operators (`site:`, `intitle:`, `""`). |
+| `api_key` | string | **Yes** | — | Secret SerpApi account token. |
+| `location` | string | Optional | — | Canonical geographic location (e.g. `"Ahmedabad, Gujarat, India"`). |
+| `google_domain` | string | Optional | `google.com` | Google top-level domain (e.g. `google.co.in`, `google.co.uk`). |
+| `gl` | string | Optional | `us` | Country code for search edition (e.g. `in`, `us`, `uk`). |
+| `hl` | string | Optional | `en` | Language interface code (e.g. `en`, `hi`, `es`). |
+| `device` | string | Optional | `desktop` | Client device emulation: `desktop`, `mobile`, or `tablet`. |
+| `start` | integer | Optional | `0` | Result offset (multiples of 10: `0`, `10`, `20`, `30`, `40`). |
+| `tbm` | string | Optional | — | Vertical filter: `isch` (Images), `lcl` (Local), `nws` (News), `vid` (Videos), `shop` (Shopping). |
+| `tbs` | string | Optional | — | Date/verbatim filters: `qdr:d` (24h), `qdr:w` (week), `qdr:m` (month), `li:1` (verbatim). |
+| `no_cache` | boolean | Optional | `false` | Force fresh live scrape bypassing 1h cache. |
+| `output` | string | Optional | `json` | Output format: `json` (standard), `html` (raw HTML), `md` (LLM markdown). |
+| `json_restrictor`| string | Optional | — | Limit response keys (e.g. `organic_results,local_results`) to reduce latency. |
 
-### 1. Search Metadata & Parameters
-```json
-{
-  "search_metadata": {
-    "id": "673abc...",
-    "status": "Success",
-    "total_time_taken": 1.42
-  },
-  "search_parameters": {
-    "engine": "google",
-    "q": "emergency hospital",
-    "location_requested": "Ahmedabad, Gujarat, India",
-    "location_used": "Ahmedabad, Gujarat, India",
-    "google_domain": "google.co.in",
-    "hl": "en",
-    "gl": "in",
-    "device": "desktop"
-  }
-}
-```
-
-### 2. Organic Results (`organic_results`)
-```json
-{
-  "organic_results": [
-    {
-      "position": 1,
-      "title": "Emergency Medicine Services - Sterling Hospitals",
-      "link": "https://www.sterlinghospitals.com/specialities/emergency-medicine",
-      "displayed_link": "https://www.sterlinghospitals.com › specialities › emergency-medicine",
-      "snippet": "Sterling Hospitals provides 24x7 emergency medical trauma care in Ahmedabad...",
-      "sitelinks": {
-        "inline": [
-          { "title": "Contact Us", "link": "https://www.sterlinghospitals.com/contact" }
-        ]
-      }
-    }
-  ]
-}
-```
-
-### 3. Local Pack Places (`local_results`)
-When queries have local intent, Google embeds a 3-pack map module:
-```json
-{
-  "local_results": {
-    "places": [
-      {
-        "position": 1,
-        "title": "Sterling Hospital Ahmedabad",
-        "rating": 4.6,
-        "reviews": 1250,
-        "type": "Emergency room",
-        "address": "Sterling Hospital Rd, Memnagar, Ahmedabad",
-        "gps_coordinates": { "latitude": 23.0512, "longitude": 72.5312 },
-        "links": {
-          "website": "https://www.sterlinghospitals.com/"
-        }
-      }
-    ]
-  }
-}
-```
-
-### 4. Featured Snippets / Answer Box (`answer_box`)
-```json
-{
-  "answer_box": {
-    "type": "organic_result",
-    "title": "Emergency Medicine Definition",
-    "link": "https://en.wikipedia.org/wiki/Emergency_medicine",
-    "snippet": "Emergency medicine is the medical speciality concerned with the care of illnesses..."
-  }
-}
-```
+👉 *For the complete exhaustive parameter guide, see [parameters_reference.md](resources/parameters_reference.md).*
 
 ---
 
-## Laravel Implementation Blueprint
+## 6. Parsing Common SERP Components
 
-### 1. Robust Service Wrapper (`SerpApiClientService.php`)
+### 1. Organic Search Results (`organic_results`)
+```php
+$organic = $response['organic_results'] ?? [];
+foreach ($organic as $index => $item) {
+    $rank = $start + ($index + 1);
+    $title = $item['title'] ?? '';
+    $link = $item['link'] ?? '';
+    $snippet = $item['snippet'] ?? '';
+    $sitelinks = $item['sitelinks']['inline'] ?? [];
+}
+```
+
+### 2. Local 3-Pack Map Results (`local_results.places`)
+```php
+$places = $response['local_results']['places'] ?? [];
+foreach ($places as $place) {
+    $businessName = $place['title'] ?? '';
+    $rating = $place['rating'] ?? null;
+    $reviews = $place['reviews'] ?? 0;
+    $address = $place['address'] ?? '';
+    $website = $place['links']['website'] ?? '';
+    $gps = $place['gps_coordinates'] ?? []; // ['latitude' => ..., 'longitude' => ...]
+}
+```
+
+### 3. Featured Snippet / Answer Box (`answer_box`)
+Position 0 widget displayed above regular organic results:
+```php
+if (!empty($response['answer_box'])) {
+    $snippetType = $response['answer_box']['type'] ?? '';
+    $snippetTitle = $response['answer_box']['title'] ?? '';
+    $snippetUrl = $response['answer_box']['link'] ?? '';
+    $snippetText = $response['answer_box']['snippet'] ?? '';
+}
+```
+
+👉 *For exhaustive JSON response schemas, see [response_schemas.md](resources/response_schemas.md).*
+
+---
+
+## 7. Production Laravel Rank Tracker Template
+
+Here is the minimal production rank checker pattern:
 
 ```php
-<?php
-
-namespace App\Services;
-
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
-class SerpApiClientService
+public function getTargetRank(string $keyword, string $targetDomain, string $location, int $maxDepth = 50): ?array
 {
-    protected string $apiKey;
-    protected string $baseUrl = 'https://serpapi.com/search.json';
-
-    public function __construct()
-    {
-        $this->apiKey = config('services.serpapi.key', env('SERPAPI_API_KEY', ''));
-    }
-
-    /**
-     * Search Google SERP with canonical location formatting and high timeout.
-     */
-    public function search(array $params): array
-    {
-        if (empty($this->apiKey)) {
-            throw new \RuntimeException('SerpApi API key is not configured.');
-        }
-
-        // Sanitize location spacing if present
-        if (!empty($params['location'])) {
-            $params['location'] = preg_replace('/\s*,\s*/', ', ', trim($params['location']));
-        }
-
-        $queryParams = array_merge([
-            'engine'        => 'google',
-            'api_key'       => $this->apiKey,
-            'output'        => 'json',
-            'device'        => 'desktop',
-            'gl'            => 'in',
-            'hl'            => 'en',
-            'google_domain' => 'google.co.in',
-            'start'         => 0,
-        ], $params);
-
-        $response = Http::timeout(60)
-            ->retry(2, 500)
-            ->get($this->baseUrl, $queryParams);
-
-        if (!$response->successful()) {
-            Log::error('SerpApi Search Failed', [
-                'status' => $response->status(),
-                'error'  => $response->json('error') ?? $response->body(),
-            ]);
-            throw new \RuntimeException('SerpApi request failed: ' . ($response->json('error') ?? $response->status()));
-        }
-
-        return $response->json() ?? [];
-    }
-}
-```
-
-### 2. Multi-Page Target Rank Checker Loop
-
-```php
-public function findTargetRank(string $query, string $targetDomain, string $location, int $maxDepth = 50): ?array
-{
+    // 1. Sanitize location spacing
+    $cleanLocation = preg_replace('/\s*,\s*/', ', ', trim($location));
     $cleanTarget = strtolower(preg_replace('/^www\./i', '', trim($targetDomain)));
     $pageSize = 10;
-    $maxPages = ceil($maxDepth / $pageSize);
+    $maxPages = (int) ceil($maxDepth / $pageSize);
 
     for ($page = 0; $page < $maxPages; $page++) {
         $start = $page * $pageSize;
-        $data = $this->serpApi->search([
-            'q'        => $query,
-            'location' => $location,
-            'start'    => $start,
+
+        $response = Http::timeout(60)->retry(2, 500)->get('https://serpapi.com/search.json', [
+            'engine'        => 'google',
+            'api_key'       => config('services.serpapi.key'),
+            'q'             => $keyword,
+            'location'      => $cleanLocation,
+            'google_domain' => 'google.co.in',
+            'gl'            => 'in',
+            'hl'            => 'en',
+            'device'        => 'desktop',
+            'start'         => $start,
         ]);
 
-        $organic = $data['organic_results'] ?? [];
-        if (empty($organic)) {
-            break; // No more results returned
+        if (!$response->successful()) {
+            throw new \RuntimeException('SerpApi error: ' . $response->status());
         }
 
-        foreach ($organic as $index => $item) {
-            $currentRank = $start + ($index + 1);
-            $itemHost = strtolower(parse_url($item['link'] ?? '', PHP_URL_HOST) ?? '');
-            $cleanHost = preg_replace('/^www\./i', '', $itemHost);
+        $results = $response->json('organic_results') ?? [];
+        if (empty($results)) {
+            break;
+        }
 
-            if ($cleanHost === $cleanTarget || str_contains($cleanHost, $cleanTarget)) {
+        foreach ($results as $idx => $item) {
+            $itemHost = strtolower(parse_url($item['link'] ?? '', PHP_URL_HOST) ?? '');
+            $itemHost = preg_replace('/^www\./i', '', $itemHost);
+
+            if ($itemHost === $cleanTarget || str_ends_with($itemHost, '.' . $cleanTarget)) {
                 return [
-                    'rank'       => $currentRank,
-                    'title'      => $item['title'] ?? '',
-                    'url'        => $item['link'] ?? '',
-                    'snippet'    => $item['snippet'] ?? '',
-                    'found_on'   => "page " . ($page + 1),
+                    'rank'  => $start + ($idx + 1),
+                    'page'  => $page + 1,
+                    'url'   => $item['link'] ?? '',
+                    'title' => $item['title'] ?? '',
                 ];
             }
         }
     }
 
-    return null; // Unranked within maxDepth
+    return null; // Not found within maxDepth
 }
 ```
 
+👉 *For the full feature-complete service implementation with local pack and featured snippet detection, see [rank_tracker_service.php](examples/rank_tracker_service.php).*
+
 ---
 
-## Verifying Account Status
+## 8. Supplemental Resources & Deep Dives
 
-To monitor remaining search quota programmatically:
-
-```php
-$account = Http::timeout(15)->get('https://serpapi.com/account', [
-    'api_key' => $apiKey,
-]);
-
-$searchesLeft = $account->json('total_searches_left');
-$plan = $account->json('plan_name');
-```
+- [Exhaustive Parameters Reference (Every Parameter Explained)](resources/parameters_reference.md)
+- [Complete JSON Response Schemas & Samples](resources/response_schemas.md)
+- [Production Rank Tracker Service Implementation (Laravel)](examples/rank_tracker_service.php)
