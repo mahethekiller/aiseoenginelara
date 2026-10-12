@@ -182,7 +182,7 @@ class SerpApiClientService
 
         // If already looks canonical (contains commas like "City,State,Country")
         if (substr_count($raw, ',') >= 2) {
-            return $raw;
+            return preg_replace('/\s*,\s*/', ', ', $raw);
         }
 
         $cacheKey = 'serpapi_loc_'.md5(strtolower($raw).'_'.strtolower($country ?? ''));
@@ -201,19 +201,23 @@ class SerpApiClientService
                             $countryUpper = strtoupper($country);
                             foreach ($locations as $loc) {
                                 if (isset($loc['country_code']) && strtoupper($loc['country_code']) === $countryUpper) {
-                                    return $loc['canonical_name'] ?? $raw;
+                                    $match = $loc['canonical_name'] ?? $raw;
+
+                                    return preg_replace('/\s*,\s*/', ', ', $match);
                                 }
                             }
                         }
 
-                        return $locations[0]['canonical_name'] ?? $raw;
+                        $match = $locations[0]['canonical_name'] ?? $raw;
+
+                        return preg_replace('/\s*,\s*/', ', ', $match);
                     }
                 }
             } catch (\Throwable $e) {
                 Log::debug('SerpApi location resolution failed: '.$e->getMessage());
             }
 
-            return $raw;
+            return preg_replace('/\s*,\s*/', ', ', $raw);
         });
     }
 
@@ -361,7 +365,7 @@ class SerpApiClientService
                 'api_key' => $key,
             ]);
 
-            $response = Http::timeout(25)->get('https://serpapi.com/search.json', $apiParams);
+            $response = Http::timeout(60)->get('https://serpapi.com/search.json', $apiParams);
 
             if ($response->failed()) {
                 $json = $response->json();
