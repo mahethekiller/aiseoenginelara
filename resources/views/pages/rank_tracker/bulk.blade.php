@@ -148,30 +148,57 @@
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {{-- Target Domain --}}
+                            {{-- Target Domain & Quick Client Selector --}}
                             <div class="space-y-1.5 sm:col-span-2">
-                                <label class="text-xs font-bold text-base-content flex items-center justify-between">
-                                    <span>Target Domain <span class="text-error">*</span></span>
-                                    <span id="domain-clean-preview" class="text-[11px] text-base-content/50 font-mono">Clean: —</span>
-                                </label>
+                                <div class="flex items-center justify-between mb-0.5">
+                                    <label class="text-xs font-bold text-base-content flex items-center gap-1.5">
+                                        <i data-lucide="globe" class="w-3.5 h-3.5 text-primary"></i>
+                                        <span>Target Domain <span class="text-error">*</span></span>
+                                    </label>
+                                    @if($allClients->count() > 0)
+                                        <select id="client_quick_select" onchange="handleDomainQuickSelect(this)" class="select select-bordered select-xs text-[10px] h-6 min-h-6 bg-base-200/80 border-base-300 max-w-[160px] font-semibold" title="Select domain from existing client">
+                                            <option value="" data-domain="">Custom / Blank</option>
+                                            @foreach($allClients as $c)
+                                                @php
+                                                    $cleanUrl = preg_replace('#^https?://#i', '', rtrim($c->website_url, '/'));
+                                                    $cleanUrl = preg_replace('#^www\.#i', '', $cleanUrl);
+                                                @endphp
+                                                <option value="{{ $c->id }}" data-domain="{{ $cleanUrl }}">
+                                                    {{ $c->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    @endif
+                                </div>
                                 <div class="relative">
                                     <i data-lucide="globe" class="w-4 h-4 absolute left-3 top-3 text-base-content/40 pointer-events-none"></i>
-                                    <input type="text" id="target_domain" name="target_domain" value="{{ old('target_domain', $activeClient?->website_url ? parse_url($activeClient->website_url, PHP_URL_HOST) : '') }}" placeholder="e.g. sterlinghospitals.com" class="input input-sm input-bordered w-full pl-9 font-mono text-xs rounded-xl" required />
+                                    <input type="text" id="target_domain" name="target_domain" value="{{ old('target_domain', '') }}" placeholder="e.g. sterlinghospitals.com" class="input input-sm input-bordered w-full pl-9 font-mono text-xs rounded-xl" required />
                                 </div>
-                                <span class="text-[11px] text-base-content/50">Primary website domain to track ranks for if not provided in the CSV row.</span>
+                                <div class="flex items-center justify-between text-[11px] text-base-content/50">
+                                    <span>Primary website domain to track ranks for if not provided in CSV row.</span>
+                                    <span id="domain-clean-preview" class="font-mono">Clean: —</span>
+                                </div>
                             </div>
 
-                            {{-- Target Location --}}
-                            <div class="space-y-1.5 sm:col-span-2">
-                                <label class="text-xs font-bold text-base-content flex items-center justify-between">
-                                    <span>Default Location (Geo-Targeting)</span>
-                                    <span class="text-[11px] text-base-content/50 font-normal">City / State / Country</span>
-                                </label>
+                            {{-- Target Location with Autocomplete --}}
+                            <div class="space-y-1.5 sm:col-span-2 relative">
+                                <div class="flex items-center justify-between mb-0.5">
+                                    <label class="text-xs font-bold text-base-content flex items-center gap-1.5">
+                                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500"></i>
+                                        <span>Default Location (Geo-Targeting)</span>
+                                    </label>
+                                    <span id="canonical-status-pill" class="hidden badge badge-success badge-xs font-mono text-[9px] gap-1">
+                                        <i data-lucide="check-check" class="w-2.5 h-2.5"></i> Canonical
+                                    </span>
+                                </div>
                                 <div class="relative">
                                     <i data-lucide="map-pin" class="w-4 h-4 absolute left-3 top-3 text-base-content/40 pointer-events-none"></i>
-                                    <input type="text" id="location" name="location" value="{{ old('location', 'Ahmedabad, Gujarat, India') }}" placeholder="e.g. Ahmedabad, Gujarat, India or Mumbai, Maharashtra, India" class="input input-sm input-bordered w-full pl-9 text-xs rounded-xl" />
+                                    <input type="text" id="location" name="location" value="{{ old('location', '') }}" autocomplete="off" placeholder="e.g. Ahmedabad, Gujarat, India (Type 2+ letters for auto-fill...)" class="input input-sm input-bordered w-full pl-9 pr-8 text-xs rounded-xl" oninput="handleLocationInput(this)" />
+                                    <span id="loc-spinner" class="hidden loading loading-spinner loading-xs absolute right-3 top-3 text-amber-500"></span>
                                 </div>
-                                <span class="text-[11px] text-base-content/50">Simulates Google local search from this specific city (passed to SerpApi with pre-resolved canonical location).</span>
+                                <!-- Dropdown suggestions popup -->
+                                <div id="location-suggestions" class="hidden absolute z-50 left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-xl shadow-2xl max-h-52 overflow-y-auto divide-y divide-base-200 text-xs"></div>
+                                <span class="text-[11px] text-base-content/50">Simulates Google local search from this specific city (leave blank for national search).</span>
                             </div>
 
                             {{-- Client Assignment --}}
@@ -714,6 +741,103 @@ function closeProgressModal() {
     const modal = document.getElementById('bulk_progress_modal');
     modal.close();
 }
+
+function handleDomainQuickSelect(selectEl) {
+    const selectedOption = selectEl.options[selectEl.selectedIndex];
+    const domain = selectedOption.getAttribute('data-domain') || '';
+    const clientId = selectEl.value;
+
+    const domainInput = document.getElementById('target_domain');
+    domainInput.value = domain;
+    domainInput.dispatchEvent(new Event('input'));
+
+    const clientSelect = document.getElementById('client_id');
+    if (clientSelect) {
+        clientSelect.value = clientId;
+    }
+}
+
+let locationDebounceTimer = null;
+
+function handleLocationInput(input) {
+    clearTimeout(locationDebounceTimer);
+    const query = input.value.trim();
+    const country = (document.getElementById('country') ? document.getElementById('country').value : 'in') || 'in';
+    const suggestionsBox = document.getElementById('location-suggestions');
+    const spinner = document.getElementById('loc-spinner');
+    const pill = document.getElementById('canonical-status-pill');
+
+    if (query.length < 2) {
+        suggestionsBox.classList.add('hidden');
+        suggestionsBox.innerHTML = '';
+        spinner.classList.add('hidden');
+        pill.classList.add('hidden');
+        return;
+    }
+
+    spinner.classList.remove('hidden');
+
+    locationDebounceTimer = setTimeout(function () {
+        fetch(`{{ route('rank-tracker.locations') }}?q=${encodeURIComponent(query)}&country=${encodeURIComponent(country)}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            }
+        })
+        .then(res => res.json())
+        .then(locations => {
+            spinner.classList.add('hidden');
+            if (!locations || locations.length === 0) {
+                suggestionsBox.classList.add('hidden');
+                suggestionsBox.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            locations.forEach(loc => {
+                html += `
+                    <button type="button" onclick="selectCanonicalLocation('${escapeHtml(loc.canonical_name)}')" class="w-full text-left px-3.5 py-2.5 hover:bg-base-200 transition-colors flex items-center justify-between text-xs group">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
+                            <div>
+                                <div class="font-bold text-base-content group-hover:text-primary transition-colors">${escapeHtml(loc.canonical_name)}</div>
+                                <div class="text-[10px] text-base-content/50">${loc.target_type} • ${loc.country_code}</div>
+                            </div>
+                        </div>
+                        ${loc.reach ? `<span class="badge badge-ghost badge-xs font-mono text-[9px]">${loc.reach}</span>` : ''}
+                    </button>
+                `;
+            });
+
+            suggestionsBox.innerHTML = html;
+            suggestionsBox.classList.remove('hidden');
+            if (window.lucide && window.lucide.createIcons) {
+                window.lucide.createIcons();
+            }
+        })
+        .catch(err => {
+            spinner.classList.add('hidden');
+            suggestionsBox.classList.add('hidden');
+        });
+    }, 250);
+}
+
+function selectCanonicalLocation(canonicalName) {
+    const formatted = (canonicalName || '').replace(/\s*,\s*/g, ', ');
+    const locInput = document.getElementById('location');
+    locInput.value = formatted;
+    document.getElementById('location-suggestions').classList.add('hidden');
+    document.getElementById('location-suggestions').innerHTML = '';
+    document.getElementById('canonical-status-pill').classList.remove('hidden');
+}
+
+document.addEventListener('click', function (e) {
+    const suggestionsBox = document.getElementById('location-suggestions');
+    const locInput = document.getElementById('location');
+    if (suggestionsBox && !suggestionsBox.contains(e.target) && e.target !== locInput) {
+        suggestionsBox.classList.add('hidden');
+    }
+});
 
 function escapeHtml(text) {
     if (!text) return '';
