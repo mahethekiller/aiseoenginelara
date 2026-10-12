@@ -105,6 +105,15 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/locations', [KeywordRankController::class, 'getLocations'])->name('locations');
         });
 
+        // Bulk CSV Upload & Background Queue Processing (Requires bulk-track-ranks)
+        Route::middleware(['permission:bulk-track-ranks'])->group(function () {
+            Route::get('/bulk-upload', [KeywordRankController::class, 'bulkUploadView'])->name('bulk');
+            Route::get('/sample-csv', [KeywordRankController::class, 'downloadSampleCsv'])->name('sample-csv');
+            Route::post('/bulk-process', [KeywordRankController::class, 'startBulkProcess'])->name('bulk.process');
+            Route::get('/batch/{batchId}/progress', [KeywordRankController::class, 'getBatchProgress'])->name('batch.progress');
+            Route::post('/batch/{batchId}/cancel', [KeywordRankController::class, 'cancelBatch'])->name('batch.cancel');
+        });
+
         // Shared SERP Analysis & Batch Inspection (Tracker + Database)
         Route::middleware(['permission:track-ranks|view-rank-database'])->group(function () {
             Route::get('/{id}/serp', [KeywordRankController::class, 'getSerpCompetitors'])->name('serp');

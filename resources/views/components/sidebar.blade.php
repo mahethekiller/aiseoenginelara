@@ -74,10 +74,19 @@
             @endcan
             @can('track-ranks')
             <li>
-                <a href="{{ route('rank-tracker.index') }}" class="{{ request()->routeIs('rank-tracker.index') || (request()->routeIs('rank-tracker.*') && !request()->routeIs('rank-tracker.database*')) ? 'active bg-primary/15 text-primary font-bold shadow-xs border-l-2 border-primary' : 'text-base-content/75 hover:bg-base-200/80 hover:text-base-content' }} flex items-center gap-2.5 py-2 rounded-lg transition-all">
+                <a href="{{ route('rank-tracker.index') }}" class="{{ request()->routeIs('rank-tracker.index') ? 'active bg-primary/15 text-primary font-bold shadow-xs border-l-2 border-primary' : 'text-base-content/75 hover:bg-base-200/80 hover:text-base-content' }} flex items-center gap-2.5 py-2 rounded-lg transition-all">
                     <i data-lucide="trending-up" class="w-4 h-4 text-rose-500"></i>
                     <span>Rank Tracker</span>
                     <span class="badge badge-primary badge-outline badge-xs font-mono ml-auto">Top 50</span>
+                </a>
+            </li>
+            @endcan
+            @can('bulk-track-ranks')
+            <li>
+                <a href="{{ route('rank-tracker.bulk') }}" class="{{ request()->routeIs('rank-tracker.bulk*') ? 'active bg-primary/15 text-primary font-bold shadow-xs border-l-2 border-primary' : 'text-base-content/75 hover:bg-base-200/80 hover:text-base-content' }} flex items-center gap-2.5 py-2 rounded-lg transition-all">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-amber-500"></i>
+                    <span>Bulk CSV Scanner</span>
+                    <span class="badge badge-warning badge-outline badge-xs font-mono ml-auto">Queue</span>
                 </a>
             </li>
             @endcan

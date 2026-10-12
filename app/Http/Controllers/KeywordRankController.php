@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessKeywordRankBatchJob;
 use App\Models\Client;
 use App\Models\KeywordRankCheck;
+use App\Models\RankCheckBatch;
 use App\Models\User;
 use App\Services\KeywordRankCheckerService;
 use App\Services\SerpApiClientService;
@@ -825,6 +827,269 @@ class KeywordRankController extends Controller
             'success' => true,
             'deleted_count' => $count,
             'message' => 'Batch and its '.$count.' keyword records deleted successfully.',
+        ]);
+    }
+
+    /**
+     * Display the Bulk CSV Upload Studio
+     */
+    public function bulkUploadView(Request $request)
+    {
+        $user = $request->user();
+        $isAdmin = $this->isAdmin($user);
+
+        $allClients = Client::where('is_active', true)->orderBy('name')->get();
+        $activeClient = $user?->active_client_id ? Client::find($user->active_client_id) : null;
+
+        // Recent batches
+        $batchesQuery = RankCheckBatch::with(['client', 'user'])->latest();
+        if (! $isAdmin) {
+            $batchesQuery->where('user_id', $user->id);
+        }
+        $recentBatches = $batchesQuery->take(15)->get();
+
+        return view('pages.rank_tracker.bulk', compact(
+            'allClients',
+            'activeClient',
+            'recentBatches',
+            'isAdmin'
+        ));
+    }
+
+    /**
+     * Download a clean CSV template for bulk keyword scanning
+     */
+    public function downloadSampleCsv(): StreamedResponse
+    {
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="sample_bulk_keywords.csv"',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ];
+
+        return response()->stream(function () {
+            $handle = fopen('php://output', 'w');
+            // Write UTF-8 BOM for Excel compatibility
+            fputs($handle, "\xEF\xBB\xBF");
+
+            // CSV Header
+            fputcsv($handle, ['keyword', 'target_domain', 'location', 'target_url']);
+
+            // Sample Rows
+            fputcsv($handle, [
+                'best eye doctor in Ahmedabad',
+                'sterlinghospitals.com',
+                'Ahmedabad, Gujarat, India',
+                'https://www.sterlinghospitals.com/specialities/ophthalmology',
+            ]);
+            fputcsv($handle, [
+                'best cardiac surgeon in Ahmedabad',
+                'sterlinghospitals.com',
+                'Ahmedabad, Gujarat, India',
+                '',
+            ]);
+            fputcsv($handle, [
+                'best hospital in Gujarat',
+                '',
+                '',
+                '',
+            ]);
+            fputcsv($handle, [
+                'top cardiologist near me',
+                '',
+                'Ahmedabad, Gujarat, India',
+                '',
+            ]);
+
+            fclose($handle);
+        }, 200, $headers);
+    }
+
+    /**
+     * Ingest CSV file, validate keywords, and dispatch background queue batch job
+     */
+    public function startBulkProcess(Request $request, KeywordRankCheckerService $checkerService, SerpApiClientService $serpClient)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|max:10240', // 10MB
+            'target_domain' => 'required|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'target_url' => 'nullable|string|max:500',
+            'match_type' => 'nullable|in:domain,exact_url',
+            'country' => 'nullable|string|max:10',
+            'language' => 'nullable|string|max:10',
+            'device' => 'nullable|in:desktop,mobile',
+            'depth' => 'nullable|integer|in:10,20,30,50',
+            'client_id' => 'nullable|exists:clients,id',
+        ]);
+
+        $user = $request->user();
+        $targetDomain = trim($request->input('target_domain'));
+        $cleanTargetDomain = preg_replace('#^https?://#i', '', $targetDomain);
+        $cleanTargetDomain = preg_replace('#^www\.#i', '', $cleanTargetDomain);
+        $cleanTargetDomain = trim(explode('/', $cleanTargetDomain)[0]);
+
+        $country = strtolower(trim($request->input('country', 'in')));
+        $location = $request->input('location');
+        if (! empty($location)) {
+            $location = preg_replace('/\s*,\s*/', ', ', trim($location));
+            if (substr_count($location, ',') < 2) {
+                $location = $serpClient->canonicalizeLocation($location, $country) ?: $location;
+            }
+        }
+
+        $defaultOptions = [
+            'target_domain' => $cleanTargetDomain,
+            'target_url' => $request->input('target_url'),
+            'match_type' => $request->input('match_type', 'domain'),
+            'location' => $location,
+            'country' => $country,
+            'language' => strtolower(trim($request->input('language', 'en'))),
+            'device' => strtolower($request->input('device', 'desktop')),
+            'depth' => (int) $request->input('depth', 50),
+        ];
+
+        // Secure file storage per Rule 4
+        $uploadedFile = $request->file('csv_file');
+        $originalExt = $uploadedFile->getClientOriginalExtension() ?: 'csv';
+        $safeDomain = preg_replace('/[^a-zA-Z0-9_-]/', '_', $cleanTargetDomain);
+        $timestamp = date('Ymd_His');
+        $storedFilename = "Bulk_Scan_{$safeDomain}_{$timestamp}.{$originalExt}";
+        $uploadedFile->storeAs('imports', $storedFilename, 'local');
+
+        // Parse & extract keywords from CSV
+        try {
+            $parsedKeywords = $checkerService->parseKeywordsFromCsv($uploadedFile, $defaultOptions);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to parse CSV file: ' . $e->getMessage(),
+            ], 422);
+        }
+
+        if (empty($parsedKeywords)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid keywords found in the uploaded CSV. Ensure the CSV contains a "keyword" column or a list of search queries.',
+            ], 422);
+        }
+
+        $batchId = 'B-' . date('Ymd-His') . '-' . strtolower(Str::random(4));
+
+        $batch = RankCheckBatch::create([
+            'batch_id' => $batchId,
+            'user_id' => $user->id,
+            'client_id' => $request->input('client_id') ?: $user->active_client_id,
+            'filename' => $uploadedFile->getClientOriginalName(),
+            'target_domain' => $cleanTargetDomain,
+            'target_url' => $defaultOptions['target_url'],
+            'match_type' => $defaultOptions['match_type'],
+            'location' => $location,
+            'country' => $country,
+            'language' => $defaultOptions['language'],
+            'device' => $defaultOptions['device'],
+            'depth' => $defaultOptions['depth'],
+            'total_keywords' => count($parsedKeywords),
+            'completed_keywords' => 0,
+            'failed_keywords' => 0,
+            'status' => 'pending',
+            'extracted_keywords' => $parsedKeywords,
+            'started_at' => null,
+            'completed_at' => null,
+        ]);
+
+        // Dispatch background queue job
+        ProcessKeywordRankBatchJob::dispatch($batch->id);
+
+        return response()->json([
+            'success' => true,
+            'batch_id' => $batch->batch_id,
+            'total_keywords' => $batch->total_keywords,
+            'target_domain' => $batch->target_domain,
+            'location' => $batch->location,
+            'message' => 'Batch initialized. ' . $batch->total_keywords . ' keywords queued for background scanning.',
+        ]);
+    }
+
+    /**
+     * Poll live progress of a running background scan batch
+     */
+    public function getBatchProgress(Request $request, string $batchId)
+    {
+        $user = $request->user();
+        $isAdmin = $this->isAdmin($user);
+
+        $batch = RankCheckBatch::where('batch_id', $batchId)->first();
+        if (! $batch) {
+            return response()->json(['message' => 'Batch not found.'], 404);
+        }
+
+        if (! $isAdmin && $batch->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized access to this batch.'], 403);
+        }
+
+        // Fetch latest 5 checks completed in this batch
+        $recentChecks = KeywordRankCheck::where('batch_id', $batchId)
+            ->latest('id')
+            ->take(6)
+            ->get(['id', 'keyword', 'position', 'is_ranked', 'ranking_url', 'ranking_title'])
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'keyword' => $item->keyword,
+                    'position' => $item->position,
+                    'is_ranked' => $item->is_ranked,
+                    'display_rank' => $item->is_ranked ? '#' . $item->position : '> 50 (Unranked)',
+                    'ranking_url' => $item->ranking_url,
+                    'ranking_title' => $item->ranking_title,
+                ];
+            });
+
+        return response()->json([
+            'batch_id' => $batch->batch_id,
+            'status' => $batch->status,
+            'total_keywords' => $batch->total_keywords,
+            'completed_keywords' => $batch->completed_keywords,
+            'failed_keywords' => $batch->failed_keywords,
+            'progress_percentage' => $batch->progress_percentage,
+            'top_3_count' => $batch->top_3_count,
+            'top_10_count' => $batch->top_10_count,
+            'page_1_count' => $batch->page_1_count,
+            'unranked_count' => $batch->unranked_count,
+            'started_at' => $batch->started_at?->diffForHumans(),
+            'completed_at' => $batch->completed_at?->diffForHumans(),
+            'recent_checks' => $recentChecks,
+        ]);
+    }
+
+    /**
+     * Cancel a running background batch
+     */
+    public function cancelBatch(Request $request, string $batchId)
+    {
+        $user = $request->user();
+        $isAdmin = $this->isAdmin($user);
+
+        $batch = RankCheckBatch::where('batch_id', $batchId)->first();
+        if (! $batch) {
+            return response()->json(['message' => 'Batch not found.'], 404);
+        }
+
+        if (! $isAdmin && $batch->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized access to this batch.'], 403);
+        }
+
+        $batch->update([
+            'status' => 'cancelled',
+            'error_message' => 'Cancelled by user ' . ($user->name ?? 'User'),
+            'completed_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batch scan cancelled successfully.',
         ]);
     }
 }

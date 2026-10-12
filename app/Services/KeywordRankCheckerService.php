@@ -394,4 +394,93 @@ class KeywordRankCheckerService
 
         return $cleanLinkHost === $cleanTargetDomain || str_ends_with($cleanLinkHost, '.'.$cleanTargetDomain);
     }
+
+    /**
+     * Parse and extract keywords and optional per-keyword overrides from uploaded CSV
+     */
+    public function parseKeywordsFromCsv(\Illuminate\Http\UploadedFile|string $file, array $defaultOptions = []): array
+    {
+        $filePath = is_string($file) ? $file : $file->getRealPath();
+        if (! file_exists($filePath) || ! is_readable($filePath)) {
+            throw new \InvalidArgumentException('Unable to read CSV file.');
+        }
+
+        $handle = fopen($filePath, 'r');
+        if ($handle === false) {
+            throw new \InvalidArgumentException('Failed to open CSV file stream.');
+        }
+
+        $firstLine = fgets($handle);
+        rewind($handle);
+
+        // Strip UTF-8 BOM if present
+        if ($firstLine !== false && str_starts_with($firstLine, "\xEF\xBB\xBF")) {
+            fseek($handle, 3);
+        }
+
+        $headers = [];
+        $rows = [];
+        $isFirstRow = true;
+
+        while (($row = fgetcsv($handle, 2048, ',')) !== false) {
+            if (empty(array_filter($row, fn ($val) => trim((string) $val) !== ''))) {
+                continue; // Skip blank lines
+            }
+
+            if ($isFirstRow) {
+                $isFirstRow = false;
+                $lowered = array_map(fn ($h) => strtolower(trim(preg_replace('/[\x00-\x1F\x80-\xFF]/', '', (string) $h))), $row);
+                // Check if this row is a header row
+                if (in_array('keyword', $lowered) || in_array('keywords', $lowered) || in_array('query', $lowered)) {
+                    $headers = $lowered;
+                    continue;
+                }
+                // If not header, treat as data row
+            }
+
+            if (! empty($headers)) {
+                $named = [];
+                foreach ($headers as $idx => $colName) {
+                    $named[$colName] = isset($row[$idx]) ? trim((string) $row[$idx]) : null;
+                }
+                $kw = $named['keyword'] ?? ($named['keywords'] ?? ($named['query'] ?? null));
+                if (! empty($kw)) {
+                    $rows[] = [
+                        'keyword' => $kw,
+                        'target_domain' => ! empty($named['target_domain']) ? $named['target_domain'] : ($named['domain'] ?? ($defaultOptions['target_domain'] ?? null)),
+                        'location' => ! empty($named['location']) ? $named['location'] : ($defaultOptions['location'] ?? null),
+                        'target_url' => ! empty($named['target_url']) ? $named['target_url'] : ($named['url'] ?? ($defaultOptions['target_url'] ?? null)),
+                        'match_type' => ! empty($named['match_type']) ? $named['match_type'] : ($defaultOptions['match_type'] ?? 'domain'),
+                    ];
+                }
+            } else {
+                // Single column or raw keyword list without headers
+                $kw = trim((string) ($row[0] ?? ''));
+                if (! empty($kw)) {
+                    $rows[] = [
+                        'keyword' => $kw,
+                        'target_domain' => ! empty($row[1]) ? trim((string) $row[1]) : ($defaultOptions['target_domain'] ?? null),
+                        'location' => ! empty($row[2]) ? trim((string) $row[2]) : ($defaultOptions['location'] ?? null),
+                        'target_url' => ! empty($row[3]) ? trim((string) $row[3]) : ($defaultOptions['target_url'] ?? null),
+                        'match_type' => $defaultOptions['match_type'] ?? 'domain',
+                    ];
+                }
+            }
+        }
+
+        fclose($handle);
+
+        // Case-insensitive deduplication by keyword
+        $seen = [];
+        $deduped = [];
+        foreach ($rows as $item) {
+            $key = mb_strtolower(trim((string) $item['keyword']));
+            if (! isset($seen[$key])) {
+                $seen[$key] = true;
+                $deduped[] = $item;
+            }
+        }
+
+        return $deduped;
+    }
 }

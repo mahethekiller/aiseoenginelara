@@ -480,5 +480,94 @@ class RankTrackerTest extends TestCase
 
         $this->assertDatabaseHas('keyword_rank_checks', ['id' => $record->id]);
     }
+
+    public function test_user_can_download_sample_csv(): void
+    {
+        $response = $this->actingAs($this->admin)->get('/rank-tracker/sample-csv');
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Disposition', 'attachment; filename="sample_bulk_keywords.csv"');
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('keyword,target_domain,location,target_url', $content);
+        $this->assertStringContainsString('best eye doctor in Ahmedabad', $content);
+    }
+
+    public function test_admin_and_authorized_user_can_view_bulk_upload_page(): void
+    {
+        $response = $this->actingAs($this->admin)->get('/rank-tracker/bulk-upload');
+        $response->assertStatus(200);
+        $response->assertSee('Bulk CSV Rank Scanner');
+        $response->assertSee('Upload Keyword CSV');
+        $response->assertSee('Target Domain');
+    }
+
+    public function test_viewer_is_forbidden_from_bulk_upload(): void
+    {
+        $viewer = User::factory()->create(['name' => 'Viewer User']);
+        $viewer->assignRole('viewer');
+
+        $response = $this->actingAs($viewer)->get('/rank-tracker/bulk-upload');
+        $response->assertStatus(403);
+    }
+
+    public function test_bulk_csv_upload_validates_and_dispatches_queue_job(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+
+        $csvContent = "keyword,target_domain,location\n\"best eye doctor in Ahmedabad\",sterlinghospitals.com,\"Ahmedabad, Gujarat, India\"\n\"best cardiac surgeon in Ahmedabad\",sterlinghospitals.com,\"Ahmedabad, Gujarat, India\"";
+        $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('keywords.csv', $csvContent);
+
+        $response = $this->actingAs($this->admin)->post('/rank-tracker/bulk-process', [
+            'csv_file' => $file,
+            'target_domain' => 'sterlinghospitals.com',
+            'location' => 'Ahmedabad, Gujarat, India',
+            'country' => 'in',
+            'depth' => 50,
+        ], ['Accept' => 'application/json']);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'total_keywords' => 2,
+            'target_domain' => 'sterlinghospitals.com',
+        ]);
+
+        $this->assertDatabaseHas('rank_check_batches', [
+            'target_domain' => 'sterlinghospitals.com',
+            'total_keywords' => 2,
+            'status' => 'pending',
+        ]);
+
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\ProcessKeywordRankBatchJob::class);
+    }
+
+    public function test_batch_progress_endpoint_returns_json_telemetry(): void
+    {
+        $batch = \App\Models\RankCheckBatch::create([
+            'batch_id' => 'B-TEST-PROGRESS-1',
+            'user_id' => $this->admin->id,
+            'target_domain' => 'sterlinghospitals.com',
+            'country' => 'in',
+            'total_keywords' => 10,
+            'completed_keywords' => 4,
+            'failed_keywords' => 0,
+            'top_3_count' => 1,
+            'top_10_count' => 2,
+            'status' => 'processing',
+        ]);
+
+        $response = $this->actingAs($this->admin)->get('/rank-tracker/batch/' . $batch->batch_id . '/progress', [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'batch_id' => 'B-TEST-PROGRESS-1',
+            'status' => 'processing',
+            'total_keywords' => 10,
+            'completed_keywords' => 4,
+            'progress_percentage' => 40,
+            'top_3_count' => 1,
+        ]);
+    }
 }
 

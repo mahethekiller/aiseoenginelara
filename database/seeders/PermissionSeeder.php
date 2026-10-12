@@ -24,6 +24,7 @@ class PermissionSeeder extends Seeder
 
             // SERP & Rank Tracking Intelligence
             'track-ranks',
+            'bulk-track-ranks',
             'view-rank-database',
             'export-rank-data',
             'delete-rank-data',

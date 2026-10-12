@@ -117,8 +117,8 @@ php artisan db:seed --force
 | :--- | :--- | :--- |
 | `super_admin` | All permissions | Master system administrator |
 | `admin` | All permissions | Agency administrator |
-| `seo_specialist` | `track-ranks`, `view-rank-database`, `export-rank-data`, `manage-clients` | Dedicated SEO rank tracking, SERP audits & Agency Client profiles |
-| `editor` | `manage-presets`, `generate-content`, `view-content`, `manage-clients`, `track-ranks`, `view-rank-database`, `export-rank-data`, `delete-rank-data` | Content editor & template manager |
+| `seo_specialist` | `track-ranks`, `bulk-track-ranks`, `view-rank-database`, `export-rank-data`, `manage-clients` | Dedicated SEO rank tracking, Bulk CSV audits & Agency Client profiles |
+| `editor` | `manage-presets`, `generate-content`, `view-content`, `manage-clients`, `track-ranks`, `bulk-track-ranks`, `view-rank-database`, `export-rank-data`, `delete-rank-data` | Content editor & template manager |
 | `writer` | `generate-content`, `view-content`, `track-ranks`, `view-rank-database`, `export-rank-data` | Content creator & rank researcher |
 | `viewer` | `view-content`, `view-rank-database` | Read-only auditor (no scanning or deletion) |
 

@@ -62,6 +62,11 @@ class KeywordRankCheck extends Model
         return $this->belongsTo(Client::class);
     }
 
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(RankCheckBatch::class, 'batch_id', 'batch_id');
+    }
+
     public function scopeRanked(Builder $query): Builder
     {
         return $query->where('is_ranked', true)->whereNotNull('position');
