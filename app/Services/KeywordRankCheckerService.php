@@ -81,13 +81,12 @@ class KeywordRankCheckerService
         $forceRefresh = (bool) ($options['force_refresh'] ?? false);
         $depth = max(10, min(100, (int) ($options['depth'] ?? 50)));
 
-        // Fetch Google SERP via SerpApi with optimized payload restrictor
+        // Fetch Google SERP via SerpApi
         $serpParams = [
             'q' => $keyword,
             'gl' => $country,
             'hl' => $language,
             'device' => $device,
-            'json_restrictor' => 'organic_results,answer_box,pagination,search_metadata,search_information,related_questions,knowledge_graph,local_results',
         ];
         if (! empty($location)) {
             $serpParams['location'] = $location;
