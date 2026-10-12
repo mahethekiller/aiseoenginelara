@@ -9,13 +9,9 @@
     <!-- Header with Live Credits Badge & Actions -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-base-100 p-5 rounded-2xl border border-base-300 shadow-sm">
         <div class="space-y-1">
-            <div class="flex items-center gap-2">
-                <span class="badge badge-primary badge-outline badge-sm font-mono uppercase tracking-wider">SerpApi Live</span>
-                <span class="text-xs text-base-content/60">Google Search Rank Tracker (Top 50 Depth)</span>
-            </div>
             <h1 class="text-2xl font-black text-base-content tracking-tight">Keyword Ranking Checker</h1>
             <p class="text-xs text-base-content/70">
-                100% live Google SERP organic positions, landing page citations, and top 10 competitor landscape.
+                Live Google SERP organic positions (Top 50 depth), landing page citations, and competitor landscape.
             </p>
         </div>
 
@@ -60,93 +56,122 @@
         </div>
     </div>
 
-    <!-- Telemetry KPI Cards Bar (5-Column Responsive Grid) -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <!-- 1. Total Tracked -->
-        <div class="card bg-base-100 border border-base-300 p-3.5 rounded-xl shadow-xs">
-            <div class="flex items-center justify-between text-base-content/60 text-xs mb-1">
-                <span class="font-semibold">Tracked Queries</span>
-                <i data-lucide="hash" class="w-3.5 h-3.5 text-indigo-400"></i>
+    @php
+        $totalKpis = max(1, $kpis['total']);
+        $pctTop3 = $kpis['total'] > 0 ? round(($kpis['top3'] / $totalKpis) * 100) : 0;
+        $pctTop10 = $kpis['total'] > 0 ? round(($kpis['top10'] / $totalKpis) * 100) : 0;
+        $pctStriking = $kpis['total'] > 0 ? round(($kpis['striking'] / $totalKpis) * 100) : 0;
+        $pctUnranked = $kpis['total'] > 0 ? round(($kpis['unranked'] / $totalKpis) * 100) : 0;
+    @endphp
+
+    <!-- Streamlined Telemetry & Ranking Distribution Strip -->
+    <div class="space-y-3">
+        <!-- 4 Primary KPI Summary Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <!-- 1. Total Tracked -->
+            <div class="card bg-base-100 border border-base-300 p-4 rounded-xl shadow-xs">
+                <div class="flex items-center justify-between text-base-content/60 text-xs mb-1.5">
+                    <span class="font-semibold">Tracked Queries</span>
+                    <i data-lucide="hash" class="w-4 h-4 text-indigo-500"></i>
+                </div>
+                <div class="text-2xl font-black text-base-content font-mono">{{ number_format($kpis['total']) }}</div>
+                <div class="text-[11px] text-base-content/50 mt-0.5">Top 50 SERP depth</div>
             </div>
-            <div class="text-2xl font-black text-base-content font-mono">{{ number_format($kpis['total']) }}</div>
-            <div class="text-[10px] text-base-content/50 mt-0.5">Top 50 evaluation</div>
+
+            <!-- 2. Top 3 Podium -->
+            <div class="card bg-base-100 border border-base-300 p-4 rounded-xl shadow-xs border-l-4 border-l-emerald-500">
+                <div class="flex items-center justify-between text-base-content/60 text-xs mb-1.5">
+                    <span class="font-semibold text-emerald-600 dark:text-emerald-400">Top 3 Podium (#1 - #3)</span>
+                    <i data-lucide="trophy" class="w-4 h-4 text-emerald-500"></i>
+                </div>
+                <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono">{{ number_format($kpis['top3']) }}</div>
+                <div class="text-[11px] text-emerald-600/70 dark:text-emerald-400/70 mt-0.5">Highest CTR visibility</div>
+            </div>
+
+            <!-- 3. Page 1 Results -->
+            <div class="card bg-base-100 border border-base-300 p-4 rounded-xl shadow-xs border-l-4 border-l-cyan-500">
+                <div class="flex items-center justify-between text-base-content/60 text-xs mb-1.5">
+                    <span class="font-semibold text-cyan-600 dark:text-cyan-400">Page 1 (#4 - #10)</span>
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-cyan-500"></i>
+                </div>
+                <div class="text-2xl font-black text-cyan-600 dark:text-cyan-400 font-mono">{{ number_format($kpis['top10']) }}</div>
+                <div class="text-[11px] text-cyan-600/70 dark:text-cyan-400/70 mt-0.5">Front page placements</div>
+            </div>
+
+            <!-- 4. Average Rank -->
+            <div class="card bg-base-100 border border-base-300 p-4 rounded-xl shadow-xs border-l-4 border-l-primary">
+                <div class="flex items-center justify-between text-base-content/60 text-xs mb-1.5">
+                    <span class="font-semibold text-primary">Average Position</span>
+                    <i data-lucide="bar-chart-2" class="w-4 h-4 text-primary"></i>
+                </div>
+                <div class="text-2xl font-black text-primary font-mono">{{ $kpis['avg_position'] > 0 ? '#'.$kpis['avg_position'] : '—' }}</div>
+                <div class="text-[11px] text-base-content/50 mt-0.5">Across ranked keywords</div>
+            </div>
         </div>
 
-        <!-- 2. Top 3 Positions -->
-        <div class="card bg-base-100 border border-base-300 p-3.5 rounded-xl shadow-xs border-l-4 border-l-emerald-500">
-            <div class="flex items-center justify-between text-base-content/60 text-xs mb-1">
-                <span class="font-semibold text-emerald-600 dark:text-emerald-400">Top 3 (#1 - #3)</span>
-                <i data-lucide="trophy" class="w-3.5 h-3.5 text-emerald-500"></i>
+        <!-- Cohesive SERP Distribution Bar -->
+        <div class="bg-base-100 border border-base-300 rounded-xl p-3.5 shadow-xs space-y-2">
+            <div class="flex flex-wrap items-center justify-between text-xs gap-2">
+                <span class="font-bold text-base-content/80 flex items-center gap-1.5">
+                    <i data-lucide="activity" class="w-3.5 h-3.5 text-primary"></i>
+                    SERP Position Distribution
+                </span>
+                <div class="flex flex-wrap items-center gap-3 text-[11px] font-mono">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span>
+                        <span class="text-base-content/70">Top 3:</span>
+                        <strong class="text-emerald-600 dark:text-emerald-400">{{ number_format($kpis['top3']) }}</strong>
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-cyan-500"></span>
+                        <span class="text-base-content/70">Page 1:</span>
+                        <strong class="text-cyan-600 dark:text-cyan-400">{{ number_format($kpis['top10']) }}</strong>
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-amber-500"></span>
+                        <span class="text-base-content/70">Striking (11-50):</span>
+                        <strong class="text-amber-600 dark:text-amber-400">{{ number_format($kpis['striking']) }}</strong>
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-slate-400"></span>
+                        <span class="text-base-content/70">Unranked (>50):</span>
+                        <strong class="text-base-content/60">{{ number_format($kpis['unranked']) }}</strong>
+                    </span>
+                </div>
             </div>
-            <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono">{{ number_format($kpis['top3']) }}</div>
-            <div class="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 mt-0.5">High CTR podium</div>
-        </div>
 
-        <!-- 3. Top 10 Positions -->
-        <div class="card bg-base-100 border border-base-300 p-3.5 rounded-xl shadow-xs border-l-4 border-l-cyan-500">
-            <div class="flex items-center justify-between text-base-content/60 text-xs mb-1">
-                <span class="font-semibold text-cyan-600 dark:text-cyan-400">Page 1 (#4 - #10)</span>
-                <i data-lucide="check-circle" class="w-3.5 h-3.5 text-cyan-500"></i>
+            <!-- Segmented Progress Bar -->
+            <div class="w-full h-2.5 bg-base-200 rounded-full overflow-hidden flex shadow-inner">
+                @if($kpis['total'] > 0)
+                    <div style="width: {{ $pctTop3 }}%" class="bg-emerald-500 transition-all" title="Top 3: {{ $kpis['top3'] }} ({{ $pctTop3 }}%)"></div>
+                    <div style="width: {{ $pctTop10 }}%" class="bg-cyan-500 transition-all" title="Page 1: {{ $kpis['top10'] }} ({{ $pctTop10 }}%)"></div>
+                    <div style="width: {{ $pctStriking }}%" class="bg-amber-500 transition-all" title="Striking: {{ $kpis['striking'] }} ({{ $pctStriking }}%)"></div>
+                    <div style="width: {{ $pctUnranked }}%" class="bg-slate-400 transition-all" title="Unranked: {{ $kpis['unranked'] }} ({{ $pctUnranked }}%)"></div>
+                @else
+                    <div class="w-full bg-base-300"></div>
+                @endif
             </div>
-            <div class="text-2xl font-black text-cyan-600 dark:text-cyan-400 font-mono">{{ number_format($kpis['top10']) }}</div>
-            <div class="text-[10px] text-cyan-600/70 dark:text-cyan-400/70 mt-0.5">First page results</div>
         </div>
+    </div>
 
-        <!-- 4. Striking Distance (11-50) -->
-        <div class="card bg-base-100 border border-base-300 p-3.5 rounded-xl shadow-xs border-l-4 border-l-amber-500">
-            <div class="flex items-center justify-between text-base-content/60 text-xs mb-1">
-                <span class="font-semibold text-amber-600 dark:text-amber-400">Striking (11 - 50)</span>
-                <i data-lucide="trending-up" class="w-3.5 h-3.5 text-amber-500"></i>
-            </div>
-            <div class="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">{{ number_format($kpis['striking']) }}</div>
-            <div class="text-[10px] text-amber-600/70 dark:text-amber-400/70 mt-0.5">Optimization targets</div>
-        </div>
-
-        <!-- 5. Unranked (> 50) -->
-        <div class="card bg-base-100 border border-base-300 p-3.5 rounded-xl shadow-xs border-l-4 border-l-slate-400">
-            <div class="flex items-center justify-between text-base-content/60 text-xs mb-1">
-                <span class="font-semibold text-slate-500">Unranked (> 50)</span>
-                <i data-lucide="eye-off" class="w-3.5 h-3.5 text-slate-400"></i>
-            </div>
-            <div class="text-2xl font-black text-base-content/60 font-mono">{{ number_format($kpis['unranked']) }}</div>
-            <div class="text-[10px] text-base-content/50 mt-0.5">Beyond top 50</div>
-        </div>
-
-        <!-- 6. Average Rank -->
-        <div class="card bg-base-100 border border-base-300 p-3.5 rounded-xl shadow-xs border-l-4 border-l-primary">
-            <div class="flex items-center justify-between text-base-content/60 text-xs mb-1">
-                <span class="font-semibold text-primary">Avg Ranked Pos</span>
-                <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-primary"></i>
-            </div>
-            <div class="text-2xl font-black text-primary font-mono">{{ $kpis['avg_position'] > 0 ? '#'.$kpis['avg_position'] : '—' }}</div>
-            <div class="text-[10px] text-base-content/50 mt-0.5">Across ranked keywords</div>
-        </div>
-    </div>    <!-- Main Live Search & Check Studio -->
-    <div class="card bg-base-100 border border-base-300 shadow-sm rounded-2xl p-5 sm:p-6 space-y-5">
+    <!-- Main Live Search & Check Studio -->
+    <div class="card bg-base-100 border border-base-300 shadow-sm rounded-2xl p-5 sm:p-6 space-y-4">
         <!-- Studio Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-base-300">
+        <div class="flex items-center justify-between pb-3 border-b border-base-300">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shadow-xs">
                     <i data-lucide="sparkles" class="w-5 h-5"></i>
                 </div>
                 <div>
-                    <div class="flex items-center gap-2">
-                        <h2 class="text-base font-black text-base-content leading-tight">Live SERP Rank Scanner</h2>
-                        <span class="badge badge-primary badge-outline badge-xs font-mono font-bold uppercase tracking-wider">Top 50 Depth</span>
-                    </div>
-                    <p class="text-xs text-base-content/60 mt-0.5">Real-time Google organic position tracker, canonical geotargeting & competitor intelligence</p>
+                    <h2 class="text-base font-black text-base-content leading-tight">Live SERP Rank Scanner</h2>
+                    <p class="text-xs text-base-content/60 mt-0.5">Scans live Google organic rankings down to Top 50 with canonical geotargeting</p>
                 </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div>
                 @if(!$credits['has_key'])
                     <a href="{{ route('settings.index') }}" class="btn btn-warning btn-xs gap-1 font-bold">
                         <i data-lucide="key" class="w-3.5 h-3.5"></i> Setup SerpApi Key
                     </a>
-                @else
-                    <span class="badge badge-success badge-sm font-mono gap-1 text-[11px] font-semibold">
-                        <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                        SerpApi Ready
-                    </span>
                 @endif
             </div>
         </div>
@@ -154,14 +179,17 @@
         <form id="rank-check-form" class="space-y-4">
             @csrf
 
-            <!-- Section 1: Target Domain & Market Profile (4 Balanced Columns) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <!-- 1. Target Domain & Existing Client Selector -->
-                <div>
-                    <div class="flex items-center justify-between py-1">
+            <!-- Primary Surface Inputs: Target Domain & Geotarget (2 Clean Balanced Columns) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+                <!-- 1. Target Domain & Quick Client Selector (Col-span 7) -->
+                <div class="lg:col-span-7">
+                    <div class="flex items-center justify-between mb-1">
                         <label class="text-xs font-bold text-base-content flex items-center gap-1.5">
                             <i data-lucide="globe" class="w-3.5 h-3.5 text-primary"></i>
                             Target Domain <span class="text-error">*</span>
+                            <span class="tooltip tooltip-right" data-tip="Matches all ranking subpages (domain.com/*)">
+                                <i data-lucide="info" class="w-3 h-3 text-base-content/40 hover:text-base-content"></i>
+                            </span>
                         </label>
                         @if($allClients->count() > 0)
                             <select id="client_quick_select" name="client_id" onchange="handleClientQuickSelect(this)" class="select select-bordered select-xs text-[10px] h-6 min-h-6 bg-base-200/80 border-base-300 max-w-[150px] font-semibold" title="Auto-fill domain from existing client">
@@ -180,69 +208,36 @@
                     <div class="relative">
                         <input type="text" name="target_domain" id="target_domain_input"
                                value="{{ old('target_domain', $prefillDomain) }}"
-                               placeholder="geimshospital.com or sub.domain.com"
+                               placeholder="e.g. healinghospital.co.in or domain.com"
                                class="input input-bordered input-sm w-full bg-base-200/50 text-xs font-mono font-medium focus:input-primary transition-all"
                                required />
                     </div>
-                    <span class="text-[10px] text-base-content/50 mt-1 block">
-                        Matches all ranking subpages (e.g. <code>domain.com/*</code>)
-                    </span>
                 </div>
 
-                <!-- 2. Match Strategy -->
-                <div>
-                    <label class="label py-1 text-xs font-bold text-base-content flex items-center gap-1.5">
-                        <i data-lucide="crosshair" class="w-3.5 h-3.5 text-indigo-400"></i>
-                        Match Strategy
-                    </label>
-                    <select name="match_type" id="match_type_select" onchange="toggleExactUrlField(this.value)" class="select select-bordered select-sm w-full bg-base-200/50 text-xs font-medium focus:select-primary transition-all">
-                        <option value="domain" selected>Domain-Wide (Any subpage)</option>
-                        <option value="exact_url">Exact URL (Specific landing page)</option>
-                    </select>
-                    <span class="text-[10px] text-base-content/50 mt-1 block">
-                        Switch to Exact URL for individual articles
-                    </span>
-                </div>
-
-                <!-- 3. Target Country (gl - Default India) -->
-                <div>
-                    <label class="label py-1 text-xs font-bold text-base-content flex items-center gap-1.5">
-                        <i data-lucide="map" class="w-3.5 h-3.5 text-amber-500"></i>
-                        Target Country (gl)
-                    </label>
-                    <select name="country" class="select select-bordered select-sm w-full bg-base-200/50 text-xs font-medium focus:select-primary transition-all">
-                        @foreach($countries as $code => $cName)
-                            <option value="{{ $code }}" {{ $code === 'in' ? 'selected' : '' }}>
-                                {{ $cName }} ({{ strtoupper($code) }})
-                            </option>
-                        @endforeach
-                    </select>
-                    <span class="text-[10px] text-base-content/50 mt-1 block">
-                        Google country index edition
-                    </span>
-                </div>
-
-                <!-- 4. Device Platform (Segmented Pill Switcher) -->
-                <div>
-                    <label class="label py-1 text-xs font-bold text-base-content flex items-center gap-1.5">
-                        <i data-lucide="layers" class="w-3.5 h-3.5 text-cyan-500"></i>
-                        Device Platform
-                    </label>
-                    <div class="grid grid-cols-2 gap-1 p-1 bg-base-200/70 rounded-lg border border-base-300">
-                        <label class="flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-md text-xs font-semibold cursor-pointer transition-all has-[:checked]:bg-primary has-[:checked]:text-primary-content has-[:checked]:shadow-xs text-base-content/70 hover:text-base-content select-none">
-                            <input type="radio" name="device" value="desktop" checked class="sr-only device-radio" />
-                            <i data-lucide="laptop" class="w-3.5 h-3.5"></i>
-                            <span>Desktop</span>
+                <!-- 2. City / Canonical Geotarget (Col-span 5) -->
+                <div class="lg:col-span-5 relative">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-xs font-bold text-base-content flex items-center gap-1.5">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500"></i>
+                            <span>City / Canonical Location</span>
+                            <span class="tooltip tooltip-left" data-tip="Auto-resolves to Google Canonical Geotarget (leave blank for national search)">
+                                <i data-lucide="info" class="w-3 h-3 text-base-content/40 hover:text-base-content"></i>
+                            </span>
                         </label>
-                        <label class="flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-md text-xs font-semibold cursor-pointer transition-all has-[:checked]:bg-primary has-[:checked]:text-primary-content has-[:checked]:shadow-xs text-base-content/70 hover:text-base-content select-none">
-                            <input type="radio" name="device" value="mobile" class="sr-only device-radio" />
-                            <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
-                            <span>Mobile</span>
-                        </label>
+                        <span id="canonical-status-pill" class="hidden badge badge-success badge-xs font-mono text-[9px] gap-1">
+                            <i data-lucide="check-check" class="w-2.5 h-2.5"></i> Canonical
+                        </span>
                     </div>
-                    <span class="text-[10px] text-base-content/50 mt-1 block">
-                        Emulates mobile vs desktop SERP layout
-                    </span>
+                    <div class="relative">
+                        <i data-lucide="map-pin" class="w-4 h-4 absolute left-3 top-2.5 text-base-content/40"></i>
+                        <input type="text" id="location_input" name="location" autocomplete="off"
+                               placeholder="e.g. Ahmedabad, New York, London..."
+                               class="input input-bordered input-sm w-full pl-9 pr-8 bg-base-200/50 text-xs font-medium focus:input-primary transition-all"
+                               oninput="handleLocationInput(this)" />
+                        <span id="loc-spinner" class="hidden loading loading-spinner loading-xs absolute right-3 top-2.5 text-primary"></span>
+                    </div>
+                    <!-- Dropdown suggestions popup -->
+                    <div id="location-suggestions" class="hidden absolute z-50 left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-xl shadow-2xl max-h-52 overflow-y-auto divide-y divide-base-200 text-xs"></div>
                 </div>
             </div>
 
@@ -253,108 +248,20 @@
                 </label>
                 <div class="relative mt-1">
                     <i data-lucide="external-link" class="w-4 h-4 absolute left-3 top-2.5 text-base-content/40"></i>
-                    <input type="url" name="target_url" placeholder="https://example.com/blog/cardiac-specialist-guide"
+                    <input type="url" name="target_url" placeholder="https://example.com/specialities/emergency-medicine"
                            class="input input-bordered input-sm w-full pl-9 bg-base-100 text-xs font-mono focus:input-primary" />
                 </div>
-                <span class="text-[10px] text-base-content/50 mt-1 block">
-                    Only results matching this exact URL will be recorded as your rank position.
-                </span>
             </div>
 
-            <!-- Section 2: Regional Geotarget & Environment Precision -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 items-start">
-                <!-- City / Canonical Geotarget (Span 2 on sm & lg: matches Domain + Strategy above) -->
-                <div class="col-span-1 sm:col-span-2 relative">
-                    <div class="flex items-center justify-between">
-                        <label class="label py-1 text-xs font-bold text-base-content flex items-center gap-1.5">
-                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-500"></i>
-                            <span>City / Canonical Location</span>
-                        </label>
-                        <span id="canonical-status-pill" class="hidden badge badge-success badge-xs font-mono text-[9px] gap-1">
-                            <i data-lucide="check-check" class="w-2.5 h-2.5"></i> Canonical Geotarget
-                        </span>
-                    </div>
-                    <div class="relative">
-                        <i data-lucide="map-pin" class="w-4 h-4 absolute left-3 top-2.5 text-base-content/40"></i>
-                        <input type="text" id="location_input" name="location" autocomplete="off"
-                               placeholder="e.g. Ahmedabad, New York, London, Tokyo..."
-                               class="input input-bordered input-sm w-full pl-9 pr-8 bg-base-200/50 text-xs font-medium focus:input-primary transition-all"
-                               oninput="handleLocationInput(this)" />
-                        <span id="loc-spinner" class="hidden loading loading-spinner loading-xs absolute right-3 top-2.5 text-primary"></span>
-                    </div>
-                    <!-- Dropdown suggestions popup -->
-                    <div id="location-suggestions" class="hidden absolute z-50 left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-xl shadow-2xl max-h-52 overflow-y-auto divide-y divide-base-200 text-xs"></div>
-                    <span class="text-[10px] text-base-content/50 mt-1 block">
-                        Auto-resolves to Google Canonical Geotarget (leave blank for national search)
-                    </span>
-                </div>
-
-                <!-- Search Language (Span 1: matches Country above) -->
-                <div class="col-span-1">
-                    <label class="label py-1 text-xs font-bold text-base-content flex items-center gap-1.5">
-                        <i data-lucide="languages" class="w-3.5 h-3.5 text-indigo-400"></i>
-                        <span>Search Language (hl)</span>
-                    </label>
-                    <select name="language" class="select select-bordered select-sm w-full bg-base-200/50 text-xs font-medium focus:select-primary transition-all">
-                        <option value="en" selected>English (en)</option>
-                        <option value="es">Spanish (es)</option>
-                        <option value="fr">French (fr)</option>
-                        <option value="de">German (de)</option>
-                        <option value="it">Italian (it)</option>
-                        <option value="pt">Portuguese (pt)</option>
-                        <option value="ja">Japanese (ja)</option>
-                        <option value="hi">Hindi (hi)</option>
-                    </select>
-                    <span class="text-[10px] text-base-content/50 mt-1 block">
-                        SERP user interface language
-                    </span>
-                </div>
-
-                <!-- Agency Client Assignment (Span 1: matches Device above) -->
-                @if($allClients->count() > 0)
-                <div class="col-span-1">
-                    <label class="label py-1 text-xs font-bold text-base-content flex items-center gap-1.5">
-                        <i data-lucide="building-2" class="w-3.5 h-3.5 text-primary"></i>
-                        <span>Agency Client</span>
-                    </label>
-                    <select name="client_id" class="select select-bordered select-sm w-full bg-base-200/50 text-xs font-medium focus:select-primary transition-all">
-                        <option value="">None (Generic Run)</option>
-                        @foreach($allClients as $client)
-                            <option value="{{ $client->id }}" {{ $activeClient && $activeClient->id === $client->id ? 'selected' : '' }}>
-                                {{ $client->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <span class="text-[10px] text-base-content/50 mt-1 block">
-                        Assign keyword records to client portfolio
-                    </span>
-                </div>
-                @else
-                <div class="col-span-1">
-                    <label class="label py-1 text-xs font-bold text-base-content flex items-center gap-1.5">
-                        <i data-lucide="zap" class="w-3.5 h-3.5 text-warning"></i>
-                        <span>Scan Engine</span>
-                    </label>
-                    <div class="input input-bordered input-sm w-full bg-base-200/30 text-xs font-mono flex items-center justify-between text-base-content/70 cursor-not-allowed">
-                        <span>100% Live Real-Time</span>
-                        <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-500"></i>
-                    </div>
-                    <span class="text-[10px] text-base-content/50 mt-1 block">
-                        Always fresh live Google SERP crawl (No cache lock)
-                    </span>
-                </div>
-                @endif
-            </div>
-
-            <!-- Section 3: Target Keywords Bulk Workspace (Full Width) -->
-            <div class="bg-base-200/40 rounded-xl p-3.5 border border-base-300 space-y-2">
+            <!-- Target Keywords Workspace (Clean Full Width Textarea) -->
+            <div class="space-y-1.5">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <i data-lucide="list-filter" class="w-4 h-4 text-primary"></i>
+                        <i data-lucide="list-filter" class="w-3.5 h-3.5 text-primary"></i>
                         <label class="text-xs font-bold text-base-content">
-                            Target Keywords (Single or Bulk) <span class="text-error">*</span>
+                            Target Keywords <span class="text-error">*</span>
                         </label>
-                        <span class="text-[11px] text-base-content/50 hidden sm:inline">• Scans Google Top 50 organic results per query</span>
+                        <span class="text-[11px] text-base-content/50 hidden sm:inline">(one per line or comma-separated)</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <span id="keyword-count-badge" class="badge badge-primary badge-outline badge-xs font-mono font-bold">0 keywords</span>
@@ -362,16 +269,89 @@
                     </div>
                 </div>
                 <textarea name="keywords" id="keywords_input" rows="3"
-                          placeholder="Enter search keywords to scan (one keyword per line, or comma-separated)&#10;e.g.&#10;best cardiac surgeon in ahmedabad&#10;top cardiology hospital in ahmedabad&#10;heart specialist near me"
-                          class="textarea textarea-bordered w-full bg-base-100 text-xs font-mono focus:textarea-primary leading-relaxed shadow-xs"
+                          placeholder="best cardiac surgeon in ahmedabad&#10;emergency medicine specialist in ahmedabad&#10;top cardiology hospital near me"
+                          class="textarea textarea-bordered w-full bg-base-200/40 text-xs font-mono focus:textarea-primary focus:bg-base-100 leading-relaxed shadow-xs"
                           oninput="updateKeywordCounter(this)" required></textarea>
-                <div class="flex flex-wrap items-center justify-between text-[11px] text-base-content/60 pt-0.5">
-                    <span>Multi-page crawler automatically traverses Page 1 through Page 5 (Ranks 1 to 50).</span>
-                    <span class="font-mono text-[10px] text-base-content/40">Separators: newline or comma</span>
-                </div>
             </div>
 
-            <!-- Section 4: Action & Status Footer Bar -->
+            <!-- Progressive Disclosure: Collapsible Advanced Search Settings -->
+            <details class="collapse collapse-arrow bg-base-200/40 border border-base-300/80 rounded-xl text-xs">
+                <summary class="collapse-title text-xs font-semibold py-2 px-3.5 min-h-0 flex items-center justify-between cursor-pointer select-none">
+                    <span class="flex items-center gap-2 text-base-content/80">
+                        <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-primary"></i>
+                        Advanced Search Settings
+                        <span class="text-[11px] font-normal text-base-content/50 hidden md:inline">
+                            (India · English · Desktop · Domain-Wide)
+                        </span>
+                    </span>
+                </summary>
+                <div class="collapse-content pt-2 pb-3 px-3.5 border-t border-base-300/50 space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <!-- 1. Match Strategy -->
+                        <div>
+                            <label class="label py-0.5 text-xs font-bold text-base-content flex items-center gap-1.5">
+                                Match Strategy
+                            </label>
+                            <select name="match_type" id="match_type_select" onchange="toggleExactUrlField(this.value)" class="select select-bordered select-xs w-full bg-base-100 text-xs font-medium focus:select-primary">
+                                <option value="domain" selected>Domain-Wide (Any subpage)</option>
+                                <option value="exact_url">Exact URL (Specific page)</option>
+                            </select>
+                        </div>
+
+                        <!-- 2. Target Country (gl) -->
+                        <div>
+                            <label class="label py-0.5 text-xs font-bold text-base-content flex items-center gap-1.5">
+                                Country (gl)
+                            </label>
+                            <select name="country" class="select select-bordered select-xs w-full bg-base-100 text-xs font-medium focus:select-primary">
+                                @foreach($countries as $code => $cName)
+                                    <option value="{{ $code }}" {{ $code === 'in' ? 'selected' : '' }}>
+                                        {{ $cName }} ({{ strtoupper($code) }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- 3. Search Language (hl) -->
+                        <div>
+                            <label class="label py-0.5 text-xs font-bold text-base-content flex items-center gap-1.5">
+                                Language (hl)
+                            </label>
+                            <select name="language" class="select select-bordered select-xs w-full bg-base-100 text-xs font-medium focus:select-primary">
+                                <option value="en" selected>English (en)</option>
+                                <option value="es">Spanish (es)</option>
+                                <option value="fr">French (fr)</option>
+                                <option value="de">German (de)</option>
+                                <option value="it">Italian (it)</option>
+                                <option value="pt">Portuguese (pt)</option>
+                                <option value="ja">Japanese (ja)</option>
+                                <option value="hi">Hindi (hi)</option>
+                            </select>
+                        </div>
+
+                        <!-- 4. Device Platform -->
+                        <div>
+                            <label class="label py-0.5 text-xs font-bold text-base-content flex items-center gap-1.5">
+                                Device Emulation
+                            </label>
+                            <div class="grid grid-cols-2 gap-1 p-0.5 bg-base-100 rounded-lg border border-base-300">
+                                <label class="flex items-center justify-center gap-1 py-0.5 px-2 rounded text-xs font-semibold cursor-pointer transition-all has-[:checked]:bg-primary has-[:checked]:text-primary-content has-[:checked]:shadow-xs text-base-content/70 hover:text-base-content select-none">
+                                    <input type="radio" name="device" value="desktop" checked class="sr-only device-radio" />
+                                    <i data-lucide="laptop" class="w-3 h-3"></i>
+                                    <span>Desktop</span>
+                                </label>
+                                <label class="flex items-center justify-center gap-1 py-0.5 px-2 rounded text-xs font-semibold cursor-pointer transition-all has-[:checked]:bg-primary has-[:checked]:text-primary-content has-[:checked]:shadow-xs text-base-content/70 hover:text-base-content select-none">
+                                    <input type="radio" name="device" value="mobile" class="sr-only device-radio" />
+                                    <i data-lucide="smartphone" class="w-3 h-3"></i>
+                                    <span>Mobile</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Action & Status Footer Bar -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-base-300">
                 <div class="flex flex-wrap items-center gap-3">
                     <!-- Status Text with animated pulsing indicator -->
@@ -380,12 +360,12 @@
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                         </span>
-                        <span class="font-medium">Ready to scan. 100% live Google organic search with real-time rank precision.</span>
+                        <span class="font-medium">Ready to scan. Fast live Google search across Pages 1–5.</span>
                     </div>
 
                     <!-- Live Indicator Badge -->
                     <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-base-200/70 border border-base-300 text-xs select-none">
-                        <i data-lucide="zap" class="w-3.5 h-3.5 text-warning"></i>
+                        <i data-lucide="zap" class="w-3 h-3 text-warning"></i>
                         <span class="font-semibold text-[11px] text-base-content/80">Always Live (No Cache Lock)</span>
                     </div>
                 </div>
