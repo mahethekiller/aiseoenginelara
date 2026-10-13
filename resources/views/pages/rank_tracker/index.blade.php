@@ -178,6 +178,7 @@
 
         <form id="rank-check-form" class="space-y-4">
             @csrf
+            <input type="hidden" name="force_refresh" value="1" />
 
             <!-- Primary Surface Inputs: Target Domain & Geotarget (2 Clean Balanced Columns) -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">

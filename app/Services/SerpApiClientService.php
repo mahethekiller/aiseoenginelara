@@ -293,7 +293,7 @@ class SerpApiClientService
      * Search Google via SerpApi (Top 50 organic results)
      * Features persistent 24-hour database caching.
      */
-    public function searchGoogle(array $params, bool $forceRefresh = false): array
+    public function searchGoogle(array $params, bool $forceRefresh = true): array
     {
         $key = $this->resolveApiKey();
 

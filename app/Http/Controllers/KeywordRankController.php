@@ -212,7 +212,7 @@ class KeywordRankController extends Controller
             'device' => $validated['device'] ?? 'desktop',
             'match_type' => $validated['match_type'] ?? 'domain',
             'target_url' => $validated['target_url'] ?? null,
-            'force_refresh' => (bool) ($validated['force_refresh'] ?? false),
+            'force_refresh' => true, // Enforce no_cache=true to guarantee real-time un-cached Google results
         ];
 
         try {

@@ -78,7 +78,7 @@ class KeywordRankCheckerService
         }
         $language = strtolower(trim($options['language'] ?? 'en'));
         $device = strtolower($options['device'] ?? 'desktop') === 'mobile' ? 'mobile' : 'desktop';
-        $forceRefresh = (bool) ($options['force_refresh'] ?? false);
+        $forceRefresh = isset($options['force_refresh']) ? (bool) $options['force_refresh'] : true;
         $depth = max(10, min(100, (int) ($options['depth'] ?? 50)));
 
         // Fetch Google SERP via SerpApi
