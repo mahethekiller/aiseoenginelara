@@ -116,7 +116,40 @@ class KeywordRankCheckerService
             }
         }
 
-        // 2. Scan Organic Results list (Page 1)
+        // 2. Check if Google Local Map 3-Pack (local_results) belongs to target domain
+        $localPlaces = [];
+        if (! empty($serpResult['local_results'])) {
+            if (isset($serpResult['local_results']['places']) && is_array($serpResult['local_results']['places'])) {
+                $localPlaces = $serpResult['local_results']['places'];
+            } elseif (is_array($serpResult['local_results'])) {
+                $localPlaces = $serpResult['local_results'];
+            }
+        }
+
+        if (! empty($localPlaces)) {
+            $matchedFeatures[] = 'local_pack';
+            foreach ($localPlaces as $place) {
+                $placeLink = $place['links']['website'] ?? ($place['website'] ?? ($place['link'] ?? ''));
+                if (empty($placeLink)) {
+                    continue;
+                }
+
+                if ($this->isMatch($placeLink, $cleanTargetDomain, $targetUrl, $matchType)) {
+                    $placePos = (int) ($place['position'] ?? 0);
+                    if ($placePos > 0 && ($matchedPosition === null || $placePos < $matchedPosition)) {
+                        $matchedPosition = $placePos;
+                        $matchedUrl = $placeLink;
+                        $matchedTitle = ($place['title'] ?? 'Local Business') . ' (Google Map 3-Pack)';
+                        $type = $place['type'] ?? 'Local Business';
+                        $address = $place['address'] ?? '';
+                        $rating = ! empty($place['rating']) ? ' (' . $place['rating'] . '★ · ' . ($place['reviews'] ?? 0) . ' reviews)' : '';
+                        $matchedSnippet = trim("{$type} · {$address}{$rating}");
+                    }
+                }
+            }
+        }
+
+        // 3. Scan Organic Results list (Page 1)
         foreach ($organicResults as $item) {
             $pos = (int) ($item['position'] ?? 0);
             if ($pos > $depth || $pos < 1) {
@@ -206,10 +239,43 @@ class KeywordRankCheckerService
         }
         $matchedFeatures = array_values(array_unique($matchedFeatures));
 
-        // 3. Extract Top 10 Competitors Landscape
+        // 4. Extract Top 10 Competitors Landscape (including Google 3-Pack places)
         $topCompetitors = [];
         $compCount = 0;
+
+        if (! empty($localPlaces)) {
+            foreach ($localPlaces as $place) {
+                if ($compCount >= 10) {
+                    break;
+                }
+                $placeLink = $place['links']['website'] ?? ($place['website'] ?? ($place['link'] ?? ''));
+                $compDomain = ! empty($placeLink) ? (parse_url($placeLink, PHP_URL_HOST) ?? '') : '';
+                $compDomain = preg_replace('#^www\.#i', '', $compDomain);
+                $isTarget = ! empty($placeLink) ? $this->isMatch($placeLink, $cleanTargetDomain, $targetUrl, $matchType) : false;
+
+                $placePos = (int) ($place['position'] ?? 0);
+                $snippet = trim(($place['type'] ?? 'Local Business') . ' · ' . ($place['address'] ?? ''));
+                if (! empty($place['rating'])) {
+                    $snippet .= ' · ' . $place['rating'] . '★ (' . ($place['reviews'] ?? 0) . ' reviews)';
+                }
+
+                $topCompetitors[] = [
+                    'position' => $placePos ?: ($compCount + 1),
+                    'title' => ($place['title'] ?? 'Local Business') . ' [Google 3-Pack]',
+                    'link' => $placeLink ?: ($place['place_id_search'] ?? ''),
+                    'domain' => $compDomain ?: 'google.com/maps',
+                    'snippet' => $snippet,
+                    'is_target' => $isTarget,
+                    'is_local_pack' => true,
+                ];
+                $compCount++;
+            }
+        }
+
         foreach ($organicResults as $comp) {
+            if ($compCount >= 10) {
+                break;
+            }
             $compPos = (int) ($comp['position'] ?? 0);
             if ($compPos < 1) {
                 continue;
@@ -228,9 +294,6 @@ class KeywordRankCheckerService
             ];
 
             $compCount++;
-            if ($compCount >= 10) {
-                break;
-            }
         }
 
         // 4. Query Previous Check for Rank Delta

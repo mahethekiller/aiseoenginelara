@@ -636,6 +636,9 @@
                                         @if(!empty($item->serp_features) && in_array('featured_snippet', $item->serp_features))
                                             <span class="badge badge-accent badge-xs text-[10px] font-bold">Snippet</span>
                                         @endif
+                                        @if(!empty($item->serp_features) && in_array('local_pack', $item->serp_features))
+                                            <span class="badge badge-success text-white badge-xs text-[10px] font-bold" title="Ranked in Google Local 3-Pack">Map Pack</span>
+                                        @endif
                                     </div>
                                     @if($item->client)
                                         <span class="text-[10px] text-base-content/60 font-sans block">{{ $item->client->name }}</span>
